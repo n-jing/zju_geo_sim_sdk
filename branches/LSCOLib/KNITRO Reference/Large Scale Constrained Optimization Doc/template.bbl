@@ -1,0 +1,34 @@
+\begin{thebibliography}{\protect\citename{Nocedal et~al\mbox{.} }2009}
+
+\bibitem[\protect\citename{Byrd et~al\mbox{.} }2000]{byrd2000trust}
+{\sc Byrd, R.~H., Gilbert, J.~C., and Nocedal, J.}
+\newblock 2000.
+\newblock A trust region method based on interior point techniques for
+  nonlinear programming.
+\newblock {\em Mathematical Programming 89}, 1, 149--185.
+
+\bibitem[\protect\citename{Nocedal and Wright }]{nocedalnumerical}
+{\sc Nocedal, J., and Wright, S.~J.}
+\newblock Numerical optimization.
+
+\bibitem[\protect\citename{Nocedal et~al\mbox{.} }2009]{nocedal2009adaptive}
+{\sc Nocedal, J., W{\"a}chter, A., and Waltz, R.~A.}
+\newblock 2009.
+\newblock Adaptive barrier update strategies for nonlinear interior methods.
+\newblock {\em SIAM Journal on Optimization 19}, 4, 1674--1693.
+
+\bibitem[\protect\citename{Sartenaer }1997]{sartenaer1997automatic}
+{\sc Sartenaer, A.}
+\newblock 1997.
+\newblock Automatic determination of an initial trust region in nonlinear
+  programming.
+\newblock {\em SIAM Journal on Scientific Computing 18}, 6, 1788--1803.
+
+\bibitem[\protect\citename{Steihaug }1983]{steihaug1983conjugate}
+{\sc Steihaug, T.}
+\newblock 1983.
+\newblock The conjugate gradient method and trust regions in large scale
+  optimization.
+\newblock {\em SIAM Journal on Numerical Analysis 20}, 3, 626--637.
+
+\end{thebibliography}

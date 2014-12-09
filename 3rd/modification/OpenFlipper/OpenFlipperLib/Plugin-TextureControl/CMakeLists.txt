@@ -1,0 +1,22 @@
+include(plugin)
+
+macro (of_list_filter _list)
+  if (APPLE OR NOT Qwt5_Qt4_FOUND)
+      foreach (_element ${${_list}})
+      if (_element MATCHES "QwtFunctionPlot.*\\.(cc|hh|ui)$")
+        list (REMOVE_ITEM ${_list} ${_element})
+      endif ()
+    endforeach ()
+  endif ()
+endmacro ()
+
+if (NOT APPLE)
+  find_package(Qwt5)
+endif ()
+
+if(NOT APPLE AND Qwt5_Qt4_FOUND)
+  add_definitions(-DWITH_QWT)
+  openflipper_plugin(INCDIRS ${Qwt5_INCLUDE_DIR} LIBRARIES ${Qwt5_Qt4_LIBRARY})
+else()
+  openflipper_plugin()
+endif()

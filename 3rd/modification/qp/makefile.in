@@ -1,0 +1,87 @@
+#
+# makefile.in - Input makefile for the configure script.
+#
+
+SHELL=/bin/sh
+
+#### Start of system configuration section. ####
+
+srcdir = @srcdir@
+INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
+
+prefix = @prefix@
+
+#### Directories in which to install.
+libdir = @libdir@
+includedir = @includedir@
+
+DISTDIR = ~/pub_web
+
+#### End of system configuration section. ####
+
+CC=@CC@
+CFLAGS=-I./include @CFLAGS@
+AR = @AR@
+ARFLAGS = cru
+F2C= @F2C@
+
+OBJECTS = \
+qld.o \
+qp.o
+
+all:	libqp.a example
+
+libqp.a: $(OBJECTS)
+	$(AR) $(ARFLAGS) libqp.a $(OBJECTS)
+	chmod go+r libqp.a
+
+example: libqp.a example.o
+	$(CC) -o example example.o $(CFLAGS) -L. -lf2c -lqp -lm
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+
+.f.o:
+	$(F2C) -A $*.f
+	$(CC) $(CFLAGS) -c $*.c
+
+installdirs:
+	$(SHELL) mkinstalldirs . .
+
+install: all installdirs
+	for i in lib*.a; do \
+	   $(INSTALL_DATA) $$i $(libdir)/$$i; \
+	done
+
+	for i in *.h; do \
+	   $(INSTALL_DATA) $$i $(includedir); \
+	done
+
+clean:	
+	rm -f *.o libqp.a example *~
+
+configclean:
+	rm -f include/nnconfig.h makefile config.cache config.status config.log
+
+distclean: clean configclean
+	rm -f qld.c
+
+indent:
+	indent -T integer -T doublereal qp.c qp.h example.c
+	rm -f *~
+
+dist:
+	WDIR=`pwd`;\
+	DIR=`basename $$WDIR`;\
+	cp -r $$WDIR /tmp;\
+	cd /tmp/$$DIR;\
+	rm -rf `find /tmp/$$DIR -name CVS`;\
+	if [ -e libqp.a ] ; then\
+		make distclean;\
+	fi;\
+	cd /tmp;\
+	tar czvf $$DIR".tar.gz" $$DIR;\
+	chmod a+r $$DIR".tar.gz";\
+	mv -f $$DIR".tar.gz" $(DISTDIR)/$$DIR".tar.gz";\
+	rm -rf $$DIR

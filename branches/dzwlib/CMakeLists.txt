@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 2.8)
+
+if(WIN32)
+        set(CMAKE_FIND_LIBRARY_PREFIXES "")
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
+else()
+        set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+endif()
+message("${CMAKE_BUILD_TYPE}")
+message("${CMAKE_CXX_COMPILER}")
+
+include($ENV{HOME}/usr/share/cmake/Modules/geo_sim_sdk.cmake)
+include_geo_sim_sdk()
+link_geo_sim_sdk()
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+message("${CMAKE_SOURCE_DIR}/lib")
+add_subdirectory(src/Common)
+add_subdirectory(src/Geodesic)
+add_subdirectory(src/CVT)
+add_subdirectory(src/gmesh)
+add_subdirectory(src/MeshModel)

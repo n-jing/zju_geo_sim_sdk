@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 2.8)
+
+add_subdirectory(ANN_c)
+add_subdirectory(vtk)
+add_subdirectory(function)
+add_subdirectory(math_func)
+add_subdirectory(sparse)
+add_subdirectory(maxima)
+add_subdirectory(algorithm)
+add_subdirectory(math)
+add_subdirectory(data_tree)
+add_subdirectory(half_edge)
+add_subdirectory(geometry)

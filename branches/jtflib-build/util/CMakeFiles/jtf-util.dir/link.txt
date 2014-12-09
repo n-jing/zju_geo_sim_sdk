@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC -std=c++0x  -g   -shared -Wl,-soname,libjtf-utild.so -o ../lib/libjtf-utild.so CMakeFiles/jtf-util.dir/src/util.cpp.o  -L/home/tfjiang/usr/Linux/lib  -L/home/tfjiang/usr/Linux/64/lib  -L/home/tfjiang/usr/Linux/64/gcc4/lib 

@@ -1,0 +1,29 @@
+\documentclass[9pt,twocolumn]{extarticle}
+
+\usepackage{parskip}
+\usepackage[hmargin=1in,vmargin=1in]{geometry}
+
+\usepackage{times}
+
+\title{Heap}
+\author{Jin HUANG}
+\date{Aug.2014-Aug.2014}
+
+\begin{document}
+\maketitle
+
+\section{Why not std::heap or boost::heap?}
+std::heap has not update operation.  boost::heap uses push to add
+element, and internally storage may be not random access container,
+which leads to low efficiency.
+
+\section{Our Design}
+Giving a sequence $\{v_i\}$ in a random access container $V$, we build
+a heap $H$ such that:
+\begin{itemize}
+\item $H.top() = \max_i\{v_i\}$ is the index pointing to the max value.
+\item $H.idx(i) = v_i$.
+\item $H.update(i)$ updates $H$ if $v_i$ changes.
+\end{itemize}
+
+\end{document}

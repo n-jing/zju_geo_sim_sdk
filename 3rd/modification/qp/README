@@ -1,0 +1,38 @@
+qp
+Quadratic Programming solver
+Version 1.05
+
+Copyright 2000 CSIRO Marine Research
+GPO 1538 Hobart
+TAS 7001
+Australia
+Please send comments and bugs to Pavel.Sakov@marine.csiro.au
+
+This small library is a C wrapper to an ancient public FORTRAN code originally 
+written by Powell and modified by Schittkowski. I am not sure whetherthis code
+is still state-of-the-art or not, but it works well in our inverse models with
+up to a thousand variables.
+
+There is no warranty whatsoever.  Use at your own risk.
+
+These code may be freely redistributed under the condition that the copyright
+notices are not removed. You may distribute modified versions of this code
+UNDER THE CONDITION THAT THIS CODE AND ANY MODIFICATIONS MADE TO IT IN THE
+SAME FILE REMAIN UNDER COPYRIGHT OF CSIRO, BOTH SOURCE AND OBJECT CODE ARE
+MADE FREELY AVAILABLE WITHOUT CHARGE, AND CLEAR NOTICE IS GIVEN OF THE
+MODIFICATIONS.
+
+This code has been written and used under Linux/gcc platform. You probably
+will be able to port it to others provided that f2c converter is available.
+
+To compile it, run:
+
+configure
+make
+(make install)
+
+You may now use qp_solve() in your code, just add "#include <qp.h>"
+to the top and "-lqp -lf2c -lm" to the linker options.
+
+Good luck!
+Pavel Sakov

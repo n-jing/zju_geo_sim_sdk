@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC -std=c++0x  -g   -shared -Wl,-soname,libjtf-igld.so -o ../../lib/libjtf-igld.so CMakeFiles/jtf-igl.dir/viewer_tet.cpp.o  -L/home/tfjiang/usr/Linux/lib  -L/home/tfjiang/usr/Linux/64/lib  -L/home/tfjiang/usr/Linux/64/gcc4/lib 

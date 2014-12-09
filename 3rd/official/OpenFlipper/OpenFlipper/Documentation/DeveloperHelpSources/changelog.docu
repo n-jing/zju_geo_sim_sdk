@@ -1,0 +1,327 @@
+/*! \page changelog Changelog
+ *
+ * - <b>OpenFlipper 1.0 ( ? , 9691 RC7 )</b>
+ *      - <b>Core</b>
+ *          - Added Light source management
+ *              - Added global nodes to handle light sources
+ *              - Internal light handling can now be switched off via pluginfunctions (Used by TypeLight to take control over lights)
+ *          - About Dialog
+ *              - Show information about registered types
+ *              - Show information about glu and glut
+ *          - Process Manager
+ *              - Replaced Mutex by semaphore for waiting that a thread starts (mutex unlock does not work across threads in qt 4.6)
+ *              - Bugfix when using blocking mode for new threads
+ *          - File Dialog
+ *              - Fixed problems with keyboard interaction
+ *          - Scripting
+ *              - Fixed bug with scriptdir not set correctly on command line open
+ *              - Made core.loadObject scriptable (automatically detects right file plugin to load object)
+ *              - Fixed bug in scripted saveObject function where supported type was not correctly detected
+ *              - Fixed bug when converting matrix and vector types between scripting and core
+ *              - New function to add icon for view modes via script
+ *          - Debugging
+ *              - Windows debugging console for cerr and cout when building windows debug version
+ *              - Increased stack frame size when doing debugging.
+ *          - Bugfixes
+ *              - Bugfix for segfault on exit
+ *              - Bugfix for simple viewer and qt 4.6
+ *          - BSP Tree
+ *              - Faster generation
+ *              - Tree, Ray intersection (find closest triangle hit by ray)
+ *          - Plugin Handling
+ *              - Parallel plugin loader (The plugins are preloaded in parallel. This gives a large speedup on startup)  
+ *          - Added a global picking dialog to choose an object an algorithm should work on (OpenFlipper/publicWidgets)
+ *          - Added Function to find the object to a node (Based on BaseObjectData)
+ *          - Introduced update types to control partial uptdates (color,topology,geometry,...)
+ *          - Added region picking functions ( render picking and get a region of the picking )
+ *          - Removed unused update type
+ *          - Sanity checks on startup (Check OpenGL capabilities,library versions)
+ *      - <b>Object Types</b>
+ *          - New Light Object
+ *          - New Sphere Object
+ *          - New BSpline Curve Object
+ *          - New BSpline Surface Object
+ *      - <b>Interfaces</b>
+ *          - BackupInterface
+ *              - Full redesign
+ *              - Multiple restore stages (before, do restore, after restore
+ *              - External restore and backup signals/slots
+ *          - BaseInterface
+ *              - Added a new parameter to updatedObject which defies the update type (e.g. Topology, Geometry, selection)
+ *          - FileInterface
+ *              - Support writing multiple objects into one file
+ *          - TextureInterface
+ *              - updated textureInterface to save textures (including multitextures)
+ *          - PluginFunctions
+ *              - New function to directly set lookAt
+ *              - Improved error handling in some functions
+ *          - ThreadInterface
+ *              - Jobid is now passed to thread and the slots to identify sender
+ *          - Types
+ *              - Added a function to check if types exist
+ *      - <b>UI</b>
+ *          - Improved mouse interaction(translation with middle mouse button is done in world coordinates now)
+ *          - Added Context Menus to view modes (Depending on view mode context menus can be hidden now)
+ *          - Added rotation locking to context menu for view settings.
+ *          - Options
+ *              - Added functions to reset to factory settings
+ *      - <b>ACG</b>
+ *          - Bugfix for glstate functions returning fovy and aspect ratio
+ *          - Added gluError handling function
+ *          - New PICK_SPLINE Pickmode added
+ *          - Draw Modes
+ *              - Fixed bug with increment operator for drawmodes (shift in underlying bitset)
+ *              - Added Cells Draw Mode
+ *          - SceneGraph
+ *              - Fixed picking multipass bug where picking failed when blending or other color changing enter and leave functions where present
+ *          - GlutPrimitive Node
+ *              - Fixed bounding box computation which was centered around origin and not around center of object
+ *              - Now handles multiple primitives in one node( and different colors for each of the primitives)
+ *              - Includes a rotation to set the orientation of the objects
+ *              - DrawMode SOLID_FACES_COLORED supported
+ *          - MaterialNode
+ *              - Add extra class to store all Material Information
+ *          - PointNode
+ *              - Use Vec3d
+ *              - Fixed bug in pointnode double was send to OpenGL as float 
+ *          - LineNode
+ *              - Use Vec3d
+ *          - MeshNode2
+ *              - Fixed bug where stripes are sometimes not updated correctly
+ *              - Fixed pick face bug, where picking buffer was updated to late
+ *              - Fixed bug with point only meshes, where face and edge buffers were accessed but not there.
+ *              - When updating colors, invalidate face and edge buffers too ( otherwise no update is done)
+ *              - Be more carefull and check if mesh properties used for redering vanished between render passes (e.g. textures after restore from backups)
+ *          -QtTranslationManipulatorNode
+ *              - Added possibility to add QVariants to the node
+ *          - SceneGraphWidget
+ *              - Added system to register a widget for new nodes without changing the widget code.
+ *          - Geometry
+ *              - Added more documentation to some algorithms
+ *              - New functions 
+ *                  - Distances to planes
+ *                  - Projections (Point->Triangle, Point->Plane )
+ *                  - Intersection Ray, Axis aligned Bounding Box
+ *                  - Intersection Ray, triangle
+ *              - Quaternions
+ *                  - changed to template Vector function for rotate
+ *                  - disabled matrix constructor
+ *                  - added print_info function
+ *              - Math_Tools/GeometryFunctions.hh integrated into ACG/Geometry/Algorithms.hh
+ *      - <b>New Plugins</b>
+ *          - TypeLight
+ *              - New object type handling light sources
+ *          - TypeSphele
+ *              - Simple sphere type
+ *          - FileLight
+ *              - Support for reading and writing light information
+ *          - Slice
+ *              - Slicing plugin. Adds clipping planes to render only part of the scene
+ *      - <b>Plugins</b>
+ *          - All
+ *              - Converted all plugins to new updatedObject formats
+ *          - Color 
+ *              - Fixed wrong interface definitioni causing plugins not visible in ui menus (Thanks to Sergei Migdalskiy for reporting this bug)
+ *          - DataControl
+ *              - Support for Light sources
+ *              - Fixed Bug where delete key was not catched anymore in QT 4.6
+ *          - FileOFF
+ *              - non-manifold inputs are now duplicated and added as manifold meshes (These duplicates are marked in the OpenMesh status flag) 
+ *          - FileOBJ
+ *              - non-manifold inputs are now duplicated and added as manifold meshes (These duplicates are marked in the OpenMesh status flag) 
+ *          - INI
+ *              - Support Light sources
+ *              - Write material data for all objects with materialnode
+ *          - IsoTropic Remesher
+ *              - Process indicator added
+ *          - Info Plugin
+ *              - Fixed unsigned int/int conversion problem resulting in wrong genus computation
+ *              - Fixed crash when infobar is not setup and objects are created ( fixed by initializing it earlier)
+ *              - Don't output dihedral angles for no or one face
+ *          - Selection
+ *              - Fixed bounding box update for selection sphere
+ *              - emit updatedobject on color change
+ *              - BSpline Selections
+ *              - Scripting for controling current selection mode
+ *          - TextureControl
+ *              - Fixed bug when trying to create textures for lights (?!!)
+ *              - Fixed wrong interface definitioni causing plugins not visible in ui menus (Thanks to Sergei Migdalskiy for reporting this bug)
+ *              - Backup interface support (copy constructors for per object datas and restore functions)
+ *          - Topology Plugin
+ *              - Added missing updates
+ *          - Info Plugin
+ *              - Fixed unsigned int/int conversion problem resulting in wrong genus computation
+ *              - Fixed crash when infobar is not setup and objects are created ( fixed by initializing it earlier)
+ *              - Don't output dihedral angles for no or one face
+ *          - ViewControl
+ *              - Check if types exist before adding context menues (avoids warning)
+ *          - VSI Plugin
+ *              - Fix script generation for qt 4.6 ( in -> input rename as in causes a parse error )
+ *              - Fixed draw errors on zooming
+ *              - Additional Metadata for other algorithms
+ *              - Fixed bug when converting matrix and vector types between scripting and core
+ *      - <b>Documentation</b>
+ *          - Refactored documentation files ( One documentation directory, build targets)
+ *          - Internal help files (qhc) are now searched automatically ( no need to specify at build time anymore!)
+ *          - Added docs for the glstate to describe internal projection matrix construction and parameters
+ *          - Improved Documentation for the process manager
+ *          - Improved building instructions
+ *      - <b>Others</b>
+ *          - Fixed some crashes with Visual Studio 2010 builds (Some may still be there)
+ *      - <b>Build System</b>
+ *          - Added FFTW Finder
+ *          - Added Petsc finder
+ *          - Added a GLUT finder
+ *          - Fixed the library dir in GLEW finder
+ *          - Make windows capable of choosing debug and release version of superlu
+ *          - Build ui files from ObjectTypes (Required to register Widgets to the scenegraph dialog)
+ *          - Branding support (looks in Toplevel/branding for image files)
+ *          - Improved compiler flag settings for unix systems (easier setting of additional compiler flags)
+ *          - Made RELWITHDEBINFO build type working. (Release mode with debug symbols)
+ *          - Added doc target ( For core and plugins )
+ *          - Added search engine to help
+ *          - Tutorial for ViewModeInterface
+ *          - Tutorial for TypeInterface
+ *          - Tutorial for ThreadingInterface
+ *          - Win
+ *              - Fixup Bundle for Windows (Copies required DLLs to the build directory for easy execution)
+ *          - Mac
+ *              - Only build dmg not tgz on mac package on make package 
+ *              - Fixed bug wher Mac bundles did not include the Qt Plugins (missing jpeg support/...)
+ *
+ * - <b>OpenFlipper 1.0 RC6 ( 2010/03/17 , 8742 )</b>
+ *      - <b>Core</b>
+ *          - Splitted File Plugins ( Now there are type plugins loaded first to register types and the file plugins to load data)
+ *          - Moved loading code from OpenMesh to file plugins to support multiple data types
+ *          - Changed handling of ObjectSelectionChanged
+ *          - Updated internal types handling (directly initialized by core now) 
+ *          - Handle object tree integration for BaseObjects automatically (No longer necessary to call the setParent Function)
+ *          - selectionChanged, visibilityChanged and objectPropertiesChanged are now handled internally. If One of these changes, the signals
+ *                will be emitted by the core and passed to the plugins.
+ *          - Basic implementation to copy per Object data along with copied object
+ *          - Implemented drag and drop for files to OpenFlipper
+ *          - Fixes for building with QT 4.6
+ *          - Added a map to find objects in the objectTree (large speedup when handling multiple objects)
+ *          - Internal counters for targets, sources and objects avoiding iterations across all objects ( another speedup)
+ *      - <b>Plugin interface changes</b>
+ *              - Changed PluginFunctions to return 0 object for identifier -1
+ *              - Provide a QSettings interface to store per Plugin settings (called OpenFlipperSettings in globaloptions)
+ *              - Core manages objectSelectionChanged, visibilityChanged and objectPropertiesChanged. (Do not emit these signals in your plugin anymore)
+ *              - Added TypeInterface to register types from plugins (These plugins will be loaded first!)
+ *              - Improvements to status bar interface (now accepts arbitrary widgets)
+ *              - Renamed type idList to IdList
+ *              - Process manager added
+ *              - Updated updateObject functionality which can specify the type of updates now
+ *      - <b>DataTypes</b> 
+ *              - Added Plane Datatype and plugin
+ *              - Rewrote the mesh rendering node (now handling textures for poly meshes)
+ *      - <b>Internal changes</b>
+ *              - Updated internal types handling (directly initialized by core now) 
+ *      - <b>UI</b>
+ *              - Updated cursors (new cursors for some modes)
+ *              - Fixed hotspot of some cursors
+ *              - Updated Icons 
+ *                      - New Icons for Object Types (Group,Plane Icon)
+ *                      - Icons for Datacontrol Context Menu
+ *              - Updated About dialog to include used compiler for OpenFlipper
+ *              - Improved logger widget with filtering option
+ *      - <b>Scripting</b>
+ *              - Implimented new datatype representation which is also available in scripting now
+ *      - <b>GL Handling</b>
+ *              - Function to get maximum texture units
+ *      - <b>Plugins</b>
+ *              - File Plugins
+ *                      - New OBJ and OFF readers/writers which are independent of OpenMesh now
+ *                      - OBJ groups
+ *                      - Fixed errors reading OBJ files containing tabs
+ *                      - Basic support for splines and spline surfaces in OBJ files
+ *                      - Support for binary OFF files not following the specification ( without face color index )
+ *              - Choose between opening meshes as triangle or poly mesh
+ *                      - Added a default loading dialog
+ *              - Plugin Info
+ *                      - Shows number of primitives for open objects in the status bar
+ *              - Plugin Datacontrol
+ *                      - Some gui reworks
+ *                      - Use new signal processing correctly
+ *                      - RPC Function for grouping now returns the id of the group
+ *                      - RPC Function to ungroup
+ *              - Plugin Decimater
+ *                      - Enable Normal deviation constraint by default
+ *                      - Correctly set maximum for sliders
+ *              - Plugin IsoTropic Remesher
+ *                      - respect boundaries and edge features
+ *              - Plugin Selection
+ *                      - Create mesh from selection added
+ *              - Plugin Move
+ *                      - Added function to hide Manipulators
+ *                      - Added some Icons
+ *                      - Fixed iterator bug causing slow operations
+ *              - Plugin ViewControl
+ *                      - Don't set draw mode for all nodes
+ *              - Plugin VSI
+ *                      - New Plugin to create scripts via a visual scripting interface
+ *      - <b>ACG</b>
+ *              - Switched Bounding Box action to doubles
+ *              - added Quaternion exponential, logarithm and from_rotation_matrix construction
+ *              - Removed assertions in GLSL Shader Utils and replaced them by warnings (To support graphics cards without shaders)
+ *              - Reimplementation of the drawmode which is now a separate class
+ *      - <b>Build system</b>
+ *              - Finder for libpre
+ *              - Finder for libxml2
+ *              - Updated OpenMesh Finder
+ *              - New Option to enable stl vector checking
+ *              - First tests to enable cross compiling
+ *  
+ * - <b>OpenFlipper 1.0 RC5 ( 10.26.2009, 7508 )</b>
+ *   - <b>UI</b>
+ *     - Updated the view modes
+ *         - added toolbars to view modes
+ *         - New widget for configuring view modes
+ *     - First person navigation mode
+ *         - Added basic implementation for first person navigation in the scene (Keys wasd + mouse)
+ *   - <b>Rendering</b>
+ *     - Support stereo mode for  Philips 42-inch autostereoscopic 3D Displays
+ *   - <b>Plugin interface changes</b>
+ *     - Toolbox interface (Initialize_toolbox is removed. please add the code from this function to initialize plugin and emit addToolbox there)
+ *     - Removed global access header
+ *   - <b>Plugins</b>
+ *     - Plugin Info
+ *         - Updated Info plugin (new user interface and more info about meshes)
+ *     - Plugin Move
+ *         - Only scale manipulators if move plugin is active
+ *         - Fixed normal update in move plugin
+ *         - Fixed multiple connections in move plugin resulting in slow movement
+ *     - Plugin Datacontrol
+ *         - Fixed double entries in datacontrol
+ *     - <b>Internal changes</b>
+ *     - Changed ordering of main scenegraph nodes (and added pluginfunctions to add new nodes)
+ *   - <b>Documentation</b>
+ *     - refactor the documentation
+ *     - adjust to changes
+ *   - <b>Build system</b>
+ *     - Add cmake configurations for object types
+ *     - parse and integrate Qr resource files for plugins
+ *     - Added lib subdirectory which is automatically build when a cmakelists file exists
+ *   - <b>General bugfixes</b>
+ *     - Fixed bug where rotation center and scene center interfered
+ *     - Fixed translation in plane object
+ *   - <b>Internal libs</b>
+ *      - Updated OpenMesh to RC4 
+ * 
+ * - <b>OpenFlipper 1.0 RC4 ( 09.29.2009 ,7205)</b>
+ *      - Isotropic Remesher Plugin
+ *      - Latest OpenMesh Version
+ *      - Bugfixes
+ * 
+ * 
+ *  - <b>OpenFlipper 1.0 RC3 ( 07.10.2009)</b>
+ *      - Switch to cmake
+ *      - Creation of Windows and MacOS Installer files
+ *      - Bugfixes
+ * 
+ * - <b>OpenFlipper 1.0 RC2 ( 04.19.2009)</b>
+ *   - Cmake support added .. needs more testing
+ * 
+ * - <b>OpenFlipper 1.0 RC1 ( 03.27.2009 )</b>
+ *   - Initial Release
+ */

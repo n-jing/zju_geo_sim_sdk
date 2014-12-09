@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib/util/include/util.h
+vector
+-
+deque
+-
+cstddef
+-
+limits
+-
+time.h
+-
+
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib/util/src/util.cpp
+../include/util.h
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib/util/include/util.h
+vector
+-
+map
+-
+set
+-
+

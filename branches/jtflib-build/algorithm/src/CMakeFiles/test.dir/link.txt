@@ -1,0 +1,1 @@
+/usr/bin/c++   -std=c++0x  -g    CMakeFiles/test.dir/main.cpp.o  -o ../../bin/test  -L/home/tfjiang/usr/Linux/lib  -L/home/tfjiang/usr/Linux/64/lib  -L/home/tfjiang/usr/Linux/64/gcc4/lib -rdynamic 

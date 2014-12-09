@@ -1,0 +1,26 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 13.04.2 ] */
+
+/* [wxMaxima: input   start ] */
+load("f90");
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+eff: block(
+beta: sqrt(delta*delta-alpha*alpha),
+lhs: beta*beta*H12-alpha*alpha*H12-alpha*g2,
+rhs: alpha*beta*(H11-H22)+beta*g1,
+eqn: ratsimp(-lhs*lhs+rhs*rhs,alpha),
+[ev(eqn,alpha=0),
+ coeff(eqn,alpha),
+ coeff(eqn,alpha^2),
+ coeff(eqn,alpha^3),
+ coeff(eqn,alpha^4)]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f90(optimize(eff));
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$

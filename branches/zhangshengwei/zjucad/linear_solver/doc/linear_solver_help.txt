@@ -1,0 +1,97 @@
+# -*- mode: org; -*-
+#+AUTHOR:    Shengwei ZHANG
+#+DATE:      2014-07-05
+
+* Abstruct
+In geo_sim_sdk, there are several methods available to solve linear systems when the coefficient matrix is sparse. Special care should be taken in order to get a good result.
+
+* Sparse Solvers
+#+NAME: sparse_solver_table
+geo_sim_sdk currently provides a limited set of wrappers to external solver libraries. They are summarized in the following table:
+| linear_solver/type.value | linear_solver/name.value | Solver Kind | Matrix Kind | Dependencies                     | Notes                                                                         |
+|--------------------------+--------------------------+-------------+-------------+----------------------------------+-------------------------------------------------------------------------------|
+| PETsc                    |                          | PETsc       | SPD         | Requires the [[http://www.mcs.anl.gov/petsc/][PETsc]] package       | PETsc is dynamic load make sure your exectuable can find the dl_petsc library |
+| direct                   | cholmod                  | cholmod     | square      | Requires the [[http://www.cise.ufl.edu/research/sparse/SuiteSparse/][SuiteSparse]] package |                                                                               |
+| direct                   | umfpack                  | umfpack     | square      | Requires the [[http://www.cise.ufl.edu/research/sparse/SuiteSparse/][SuiteSparse]] package |                                                                               |
+| iterative                | laspack                  | laspack     |             | Requires the laspack package     |                                                                               |
+
+Here SPD means symmetric positive definite.
+
+* Functions
+** class linear_solver
+| static linear_solver* | [[func_create][create(const hj::sparse::csc<double, int32_t> &A, boost::property_tree::ptree &opts)]] |
+|         int           | [[func_solve][solve(const double *b, double *x, size_t rhs, boost::property_tree::ptree &opts)]]     |
+
+#+NAME: func_create
+*** static linear_solver* create(const hj::sparse::csc<double, int32_t> &A, boost::property_tree::ptree &opts)
+Create a linear solver according the opts.
+The value put in the *opts* refer to the [[sparse_solver_table][sparse solver table]]: linear_solver/type.value and linear_solver/name.value.
+*A* is the matrix of Ax=b. Be careful A must mach the Matrix Kind of the linear solver you create.
+
+#+NAME: func_solve
+*** int solve(const double *b, double *x, size_t rhs, boost::property_tree::ptree &opts)
+Solve the linear equation of Ax=b, and store the result in x.
+*rhs* is the column number of b.
+*opts* for direct solver and PTEsc is nonsense currently and for laspack we can set:
+laspack/solver: CG, BICGSTAB, ...
+laspack/precond: Jacobi, SSOR, ILU
+laspack/iter.value: [number of iteration]
+laspack/relax.value:
+
+* Examples
+#+begin_src C++ :
+#include <iostream>
+#include <linear_solver.h>
+
+using namespace std;
+
+int main(int argc, char *argv[])
+{
+  cout << "into main" << endl;
+  zjucad::matrix::matrix<double> mat = zjucad::matrix::rand<double>(4,4);
+  cout << "init finish" << endl;
+  mat = temp(trans(temp(mat)) * mat); // for petsc SPD
+
+  hj::sparse::csc<double, int32_t> csc_mat;
+  boost::property_tree::ptree opts;
+  opts.put("linear_solver/type.value", "PETsc");
+  convert(mat, csc_mat, 1e-4); // solver is for sparse matrix
+  linear_solver* solver = linear_solver::create(csc_mat, opts);
+  zjucad::matrix::matrix<double> b(4,1);
+  b[0] = 4;
+  b[1] = 4;
+  b[2] = 3;
+  b[1] = 1;
+  zjucad::matrix::matrix<double> x(4,1);
+
+  boost::property_tree::ptree opts_solve;
+  solver->solve(&b[0],&x[0],1,opts_solve); // solve result in x
+
+  // check if is right
+  zjucad::matrix::matrix<double> diff = -1*b;
+  hj::sparse::mv(false, csc_mat, x, diff);
+  cerr << norm(diff) << endl;
+  delete solver;
+  return 0;
+}
+#+end_src
+
+* How to add new solver wrappers
+Create an interface(abstract class) for the solver name as dl_[solver_name].h in
+zjucad/
+like this
+
+#+begin_src C++ :
+class PETsc
+{
+public:
+  virtual ~PETsc() {}
+};// pets_init, the init function is in it's construct function
+
+class PETsc_CG
+{
+public:
+  virtual int solve(const double *b, double *x, size_t rhs, boost::property_tree::ptree &opts) = 0;
+  virtual ~PETsc_CG() {}
+};
+#+end_src

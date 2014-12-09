@@ -1,0 +1,17 @@
+\begin{thebibliography}{\protect\citename{Byrd et~al\mbox{.} }2000}
+
+\bibitem[\protect\citename{Byrd et~al\mbox{.} }2000]{byrd2000trust}
+{\sc Byrd, R.~H., Gilbert, J.~C., and Nocedal, J.}
+\newblock 2000.
+\newblock A trust region method based on interior point techniques for
+  nonlinear programming.
+\newblock {\em Mathematical Programming 89}, 1, 149--185.
+
+\bibitem[\protect\citename{Steihaug }1983]{steihaug1983conjugate}
+{\sc Steihaug, T.}
+\newblock 1983.
+\newblock The conjugate gradient method and trust regions in large scale
+  optimization.
+\newblock {\em SIAM Journal on Numerical Analysis 20}, 3, 626--637.
+
+\end{thebibliography}

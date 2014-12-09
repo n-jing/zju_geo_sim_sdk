@@ -1,0 +1,128 @@
+2010.8.21
+编译metis时出来如下提示：
+Linking C shared library bin\libmetis.dll
+Creating library file: lib\libmetis.dll.a
+CMakeFiles/metis.dir/Lib/graph.c.obj:graph.c:(.text+0xd6e): undefined reference to `drand48'
+CMakeFiles/metis.dir/Lib/initpart.c.obj:initpart.c:(.text+0x3c9): undefined reference to `drand48'
+CMakeFiles/metis.dir/Lib/initpart.c.obj:initpart.c:(.text+0x44b): undefined reference to `drand48'
+CMakeFiles/metis.dir/Lib/initpart.c.obj:initpart.c:(.text+0x605): undefined reference to `drand48'
+CMakeFiles/metis.dir/Lib/initpart.c.obj:initpart.c:(.text+0x9cf): undefined reference to `drand48'
+CMakeFiles/metis.dir/Lib/initpart.c.obj:initpart.c:(.text+0xa5e): more undefined references to `drand48' follow
+CMakeFiles/metis.dir/Lib/util.c.obj:util.c:(.text+0xb2a): undefined reference to `srand48'
+CMakeFiles/metis.dir/Lib/util.c.obj:util.c:(.text+0xb43): undefined reference to `srand48'
+collect2: ld returned 1 exit status
+mingw32-make[2]: *** [bin/libmetis.dll] Error 1
+mingw32-make[1]: *** [CMakeFiles/metis.dir/all] Error 2
+mingw32-make: *** [all] Error 2
+
+定位drand48(），这是一个在linux系统下用来产生随机数的函数，win系统没有定义。发现libgw32c库实现了该函数。
+libgw32c是glibc的一个子集。
+
+2010.8.22
+在Gnuw32上，没找到glibc的源码，只找到libgw32c库的源码和32位库，将32位库添加进metis项目后，更改cmakelist文件：
+link_directories(D:/jtf/geo_sim_sdk/usr/lib)
+
+target_link_libraries(metis gw32c)
+
+重新生成Makefile，再次编译，报错：
+Linking C shared library bin\libmetis.dll
+C:\MinGW\bin\..\lib\gcc\mingw32\3.4.5\..\..\..\..\mingw32\bin\ld.exe cannot find -llibgw32c
+collect2: ld returned 1 exit status
+mingw32-make[2]: *** [bin/libmetis.dll] Error 1
+mingw32-make[1]: *** [CMakeFiles/metis.dir/all] Error 2
+mingw32-make: *** [all] Error 2
+
+将cmakelist改成：
+link_directories(D:/jtf/geo_sim_sdk/usr/lib)
+
+target_link_libraries(metis libgw32c)后，仍然报错
+
+Linking C shared library bin\libmetis.dll
+C:\MinGW\bin\..\lib\gcc\mingw32\3.4.5\..\..\..\..\mingw32\bin\ld.exe can not find -lgw32c
+collect2: ld returned 1 exit status
+mingw32-make[2]: *** [bin/libmetis.dll] Error 1
+mingw32-make[1]: *** [CMakeFiles/metis.dir/all] Error 2
+mingw32-make: *** [all] Error 2
+
+2010.8.23
+将cmakelist改回
+link_directories(D:/jtf/geo_sim_sdk/usr/lib)
+
+target_link_libraries(metis gw32c)
+结果编译成功！
+[ 50%] Built target metis
+[100%] Built target metis-static
+之前出错的原因不详。重新开始编译64为的libgw32c。
+先后提示缺少hp-timeing.h sysexits.h文件，加入源码目录后，再次make，出错：
+make  all-recursive
+make[1]: Entering directory `/home/tfjiang/libgw32c-0.4-src/src/libgw32c/0.4/lib
+gw32c-0.4'
+Making all in aout
+make[2]: Entering directory `/home/tfjiang/libgw32c-0.4-src/src/libgw32c/0.4/lib
+gw32c-0.4/aout'
+make[2]: Nothing to be done for `all'.
+make[2]: Leaving directory `/home/tfjiang/libgw32c-0.4-src/src/libgw32c/0.4/libg
+w32c-0.4/aout'
+Making all in argp
+make[2]: Entering directory `/home/tfjiang/libgw32c-0.4-src/src/libgw32c/0.4/lib
+gw32c-0.4/argp'
+if gcc -DHAVE_CONFIG_H -I. -I. -I.. -I. -I.. -I../include -include ../include/li
+bc-symbols.h    -g -O2 -MT argp-eexst.o -MD -MP -MF ".deps/argp-eexst.Tpo" \
+          -c -o argp-eexst.o `test -f 'argp-eexst.c' || echo './'`argp-eexst.c;
+\
+        then mv -f ".deps/argp-eexst.Tpo" ".deps/argp-eexst.Po"; \
+        else rm -f ".deps/argp-eexst.Tpo"; exit 1; \
+        fi
+In file included from argp-eexst.c:27:
+argp.h:380: error: syntax error before "__THROW"
+argp.h:380: warning: data definition has no type or storage class
+argp.h:383: error: syntax error before "__THROW"
+argp.h:383: warning: data definition has no type or storage class
+argp.h:457: error: syntax error before "__THROW"
+argp.h:457: warning: data definition has no type or storage class
+argp.h:460: error: syntax error before "__THROW"
+argp.h:460: warning: data definition has no type or storage class
+argp.h:474: error: syntax error before "__THROW"
+argp.h:474: warning: data definition has no type or storage class
+argp.h:477: error: syntax error before "__THROW"
+argp.h:477: warning: data definition has no type or storage class
+argp.h:480: error: syntax error before "__THROW"
+argp.h:480: warning: data definition has no type or storage class
+argp.h:481: error: syntax error before "__THROW"
+argp.h:481: warning: data definition has no type or storage class
+argp.h:487: error: syntax error before "__THROW"
+argp.h:488: warning: `__format__' attribute only applies to function types
+argp.h:488: warning: data definition has no type or storage class
+argp.h:490: error: syntax error before "__THROW"
+argp.h:491: warning: `__format__' attribute only applies to function types
+argp.h:491: warning: data definition has no type or storage class
+argp.h:503: error: syntax error before "__THROW"
+argp.h:504: warning: `__format__' attribute only applies to function types
+argp.h:504: warning: data definition has no type or storage class
+argp.h:507: error: syntax error before "__THROW"
+argp.h:508: warning: `__format__' attribute only applies to function types
+argp.h:508: warning: data definition has no type or storage class
+argp.h:511: error: syntax error before "__THROW"
+argp.h:511: warning: data definition has no type or storage class
+argp.h:512: error: syntax error before "__THROW"
+argp.h:512: warning: data definition has no type or storage class
+argp.h:516: error: syntax error before "__THROW"
+argp.h:516: warning: data definition has no type or storage class
+argp.h:517: error: syntax error before "__THROW"
+argp.h:517: warning: data definition has no type or storage class
+argp.h:523: error: syntax error before "__THROW"
+argp.h:523: warning: data definition has no type or storage class
+argp.h:526: error: syntax error before "__THROW"
+argp.h:526: warning: data definition has no type or storage class
+make[2]: *** [argp-eexst.o] Error 1
+make[2]: Leaving directory `/home/tfjiang/libgw32c-0.4-src/src/libgw32c/0.4/libg
+w32c-0.4/argp'
+make[1]: *** [all-recursive] Error 1
+make[1]: Leaving directory `/home/tfjiang/libgw32c-0.4-src/src/libgw32c/0.4/libg
+w32c-0.4'
+make: *** [all] Error 2
+__THROW无定义产生error，手动添加#include<sys/cdefs.h>……
+
+由于错误太多，决定换种方式来编译。最初始的错误源于drand48()、srand48()在vc中无定义，查找源码将macros.h中条件编译全部注释掉，使得在所用平台都使用rand与srand，编译成功。
+生成libmetis.dll(为什么不是.so??)与libmetis-static.a、libmetis.dll.a(这是什么东西？？)
+

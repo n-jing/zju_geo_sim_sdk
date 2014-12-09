@@ -1,0 +1,887 @@
+\documentclass[9pt,twocolumn]{extarticle}
+
+\usepackage[hmargin=0.5in,vmargin=0.75in]{geometry}
+\usepackage{parskip}
+\usepackage{amsmath,amssymb}
+\usepackage{times}
+\usepackage{cleveref}
+\Crefname{figure}{Fig.}{Figs.}
+\Crefname{equation}{Eq.}{Eqs.}
+\Crefname{table}{Tab.}{Tabs.}
+
+\usepackage{color}
+\newcommand{\TODO}[1]{\textcolor{red}{#1}}
+\renewcommand{\ttdefault}{lmtt}
+\newcommand{\CODE}[1]{\textcolor{blue}{\tt #1}}
+\newcommand{\SET}[1]{\mathbf{#1}}
+\DeclareMathOperator{\VAL}{val}
+
+\title{Half-Edge based 2D Mesh Library}
+\author{Jin HUANG}
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  2D mesh is one of the fundamental entity in computer geometry.  For
+  2D polygonal manifold mesh, the idea of half-edge data structure is
+  famous because of the great balance on efficiency and versatility.
+  This documents gives a c++ template based design for the
+  implementation.
+\end{abstract}
+
+\section{Basic Concepts}
+We build up the most related concepts from scratch.
+
+We denote $n$ dimensional finite {\em coordinate chart} (not a {\em
+  manifold}), as $\mathbb{C}^n$.  The element in $\mathbb{C}^0,
+\mathbb{C}^1, \mathbb{C}^2$ is names as {\em point}, {\em edge} and
+{\em face} respectively.  Notice here, edge can be curve and face can
+be non-planar.
+
+The boundary of a face $f$, i.e. $\partial f$, is an 1-manifold (not a
+chart). Giving a set of 1-chart $\{e_i\}, i=1\cdots,n$, if
+\begin{equation}
+  \partial f \subset \bigcup e_k, \mbox{ and } e_i\cap e_j \in \{\emptyset,  \mathbb{C}^0\}, i \neq j,
+\end{equation}
+$e_i$ is the edge of $f$.  The boundary of an edge is composed of two
+points.  A face with $n$ edges and the associated $n$ points is named
+as {\em $n$-side polygon}.
+
+A general mesh $M$ is a union of points, edges and polygons. If $M$ is a 2-manifold,
+which possibly with boundary, we call it manifold mesh.  If all the
+polygons are $3$-side, it a triangular mesh.  The most widely used
+(2D) mesh is manifold triangular mesh.
+
+Position (or coordinate) of a point, normal of a face, etc. are
+properties optionally attached to the mesh.
+
+An operation on a mesh includes two parts: the operation on the
+topological structure (point, edge, face) and the consistent operation
+on the associated properties.
+
+\section{Feature of the Library}
+
+This library will focus on utilizing half-edge data structure to
+provide flexible and robust mesh operations.  Flexibility means using
+half-edge to represent as-general-as-possible mesh, including
+non-manifold mesh.  Robust means using rigid mathematical analysis
+to guide the mesh operations.
+
+\section{General Mesh Analysis}
+
+A mesh $\mathcal{M}$ can be represented by $(V,E,F)$, which $V$ is the
+set of vertices, $E$ is the set of directed edges, and $F$ is the set
+of directed faces. A mesh can be manifold or non-manifold.  The
+discussion is shown below.  For simplicity, edge stands for directed
+edge in the following text.
+
+\subsection{Basic Definitions}
+
+%% For non-manifold mesh, an edge can belong to many faces, and one vertex can 
+%% belong to many boundary edges.
+
+%% The vertices set have some different vertices.
+%% \begin{equation}
+%%   V=\{v_i \ |\ i\in \mathbb{Z},0\leq i<nv\}
+%% \end{equation}
+%% where, $nv$ is the number of vertices.
+
+%% The edges set have some directed edges:
+%% \begin{equation}
+%% E=\{ e_i \ |\ i\in \mathbb{Z}, 0\leq i < ne \}
+%% \end{equation}
+%% where, $ne$ is the number of edges. 
+
+Giving the three set $\SET{V},\SET{E},\SET{F}$, half-edge data
+structure could be viewed as a mappings/functions set $\SET{H}$
+including the following elements:
+\begin{equation}
+  \begin{split}
+    I &:\SET{X}\rightarrow \SET{X}, \quad \SET{X} \in \{\SET{V}, \SET{E}, \SET{F}\}\\
+    e_v &: \SET{V}\rightarrow \SET{E}\cup\{\emptyset\}\\
+    v_e &: \SET{E}\rightarrow \SET{V}\\
+    f_e &: \SET{E}\rightarrow \SET{F}\cup\{\emptyset\}\\
+    n_e, p_e &: \SET{E}\rightarrow \SET{E}\cup\{\emptyset\}\\
+    o_e &: \SET{E}\rightarrow \SET{E}\\
+    e_f &: \SET{F}\rightarrow \SET{E},\\
+  \end{split}
+\end{equation}
+where $I$ is the identity mapping.  Notice here that $v_e, e_f$ cannot
+map to $\emptyset$.
+
+\subsection{$v_e$ and valence}
+The result of applying $v_e$ to an edge $e$ is the vertex that points
+to.
+
+{\em Valence} of a vertex $v$ is defined as:
+\begin{equation}
+  \VAL(v)=|\{v_e(e)=v\}|
+\end{equation}
+
+vertex can be classified into several types according to its valence:
+\begin{equation}
+  \VAL(v)
+  \begin{cases}
+    =0&\text{isolated},\\
+    =1&\text{end},\\
+    =2&\text{1d-manifold},\\
+    >2&\text{1d-non-manifold}.
+  \end{cases}
+\end{equation}
+
+\subsection{$o_e$ and undirected edge}
+We ask $o_e$ has the same property with the following additional
+requirement:
+\begin{equation}
+  o_e = o_e^{-1}.
+  \label{eq:o_e}
+\end{equation}
+Then, an {\em undirected edge} can be defined a set $e = \{e_+, e_-\},
+e_+,e_- \in \SET{E}, o_e(e_+)=e_-$.  Its end vertex set is
+$\{v_e(e_+),v_e(e_-)\}$.  If $v_e(e_+) = v_e(e_-)$, it is a loop in
+the undirected graph formed by the undirected edges.
+
+Two different undirected edges $a,b$ may have the same end
+vertices, which could be used to represent two-side hole and face.
+
+Indeed, there are two strategies for $o_e$ on boundary: no opposite,
+or opposite has not face.  The second strategy has the advantage of
+querying the one-ring of a non-manifold vertex.  Thus, we adopt the
+second one, and name the half edge with no face as boundary edge.
+
+\subsection{$e_v$}
+It satisfies the following conditions:
+\begin{equation}
+  \begin{split}
+    \VAL(v) = 0 &\Leftrightarrow e_v(v) = \emptyset,\\
+    \VAL(v) > 0 &\Leftrightarrow
+    e_v(v) \neq \emptyset \Rightarrow v_e(e_v(v)) = v.
+  \end{split}
+  \label{eq:e_v}
+\end{equation}
+Notice here that $e_v(v_e(e)) = e$ is not generally hold.
+
+\subsection{$n_e,p_e$}
+\TODO{A strong requirement}:
+\begin{equation}
+  \begin{split}
+    n_e(e) = \emptyset \Leftrightarrow \VAL(v_e(e)) = 1,\\
+    n_e(e) \neq \emptyset \Leftrightarrow \VAL(v_e(e)) > 1.
+  \end{split}
+  \label{eq:val_n}
+\end{equation}
+
+\TODO{For intuition}, for all $e \in \SET{E}$ we ask
+\begin{equation}
+  \begin{split}
+    n_e(e) \neq \emptyset \Rightarrow e &= p_e(n_e(e)),\\
+    p_e(e) \neq \emptyset \Rightarrow e &= n_e(p_e(e)).
+  \end{split}
+  \label{eq:np_e}
+\end{equation}
+Notice $n_e,p_e$ may map an edge to $\emptyset$, and thus may have no
+inverse, thus $p_e = n_e^{-1}$ is not generally hold.
+
+If $n_e(e) \neq \emptyset$ (or similarly, $p_e(e) \neq \emptyset$):
+\begin{equation}
+  \begin{split}
+    v_e(e) &= v_e(o_e(n_e(e)))\\
+    v_e(p_e(e)) &= v_e(o_e(e))\\
+  \end{split}
+\end{equation}
+
+A strong requirement should be hold, i.e. using $n_e, o_e$ can visit all the adjacent edges of a vertex $v$:
+\begin{equation}
+  \{(p_eo_e)^ke_v(v)\} = \{e|v_e(e) = v\}.
+\end{equation}
+According to this requirement, if a non-manifold vertex is adjacent to
+four boundary edges (see below), \TODO{it can be proved} that these
+edges have uniquely defined $n_e,p_e$.
+
+
+%% Two different edges $a, b$ are {\em touched} at vertex $v$ if and only
+%% if:
+%% \begin{equation}
+%%   v_e(a) = v_e(o_e(b)) = v.
+%% \end{equation}
+For 1d-manifold vertex $v$, the following condition can be derived
+from \Cref{eq:val_n,eq:np_e}:
+\begin{equation}
+  o_e(n_e(o_e(n_e(e_v(v))))) = e_v(v).
+  \label{eq:1d-manifold}
+\end{equation}
+
+%% Two different edges $a, b$ are {\em connected} if
+%% \begin{equation}
+%%   n_e(a)=b.
+%% \end{equation}
+%% Notice that $v_e(a) = v_e(o_e(b)) = v$ does not mean $a,b$ are
+%% connected, although $a,b$ touch each other at $v$.
+
+%% For connected $a,b$, the following condition must hold:
+%% \begin{equation}
+%%   c = n_e(o_e(b)) \neq \emptyset \wedge v_e(o_e(c)) = v,
+%%   \label{eq:connected}
+%% \end{equation}
+%% but $c = o_e(a)$ is not generally true.
+
+\subsection{$f_e$ and $e_f$}
+If and only if the edge $e$ is a boundary of a face $f$, $f_e(e)=f$,
+otherwise $f_e(e)=\emptyset$.  $e_f$ returns one of the boundary edge
+of face.
+
+The following equalities must hold:
+\begin{equation}
+  \begin{split}
+    f_e(n_e^k(e)) &= f_e(e), \quad k=0, 1, \cdots.
+    \label{eq:fe}
+  \end{split}
+\end{equation}
+Notice $e_f(f_e(e)) = e$ is not generally true.
+
+We also ask:
+\begin{equation}
+  f_e(e) \neq \emptyset \Rightarrow f_e(e) \neq f_e(o_e(e)) \wedge
+  \exists 0 < k \leq |\SET{E}|, n_e^k(e) = e.
+\end{equation}
+When $k=1$, it is a face bounded by a single curved edge.
+
+Boundary edges are defined as:
+\begin{equation}
+  \partial_e \SET{F} = \left\{e|f_e(e)=\emptyset \wedge f_e(o_e(e)) \neq
+  \emptyset\right\}.
+\end{equation}
+Notice that isolated (to faces) edges are not boundary edges.
+Boundary vertex are defined as:
+\begin{equation}
+  \partial_v \SET{F} = \left\{v_e(e)|e\in \partial_e \SET{F}\right\}.
+\end{equation}
+\TODO{It can be proved that}
+\begin{equation}
+  v \in \partial_v \SET{F} \Rightarrow \VAL(v) \geq 2.
+\end{equation}
+
+\subsection{Equalities Constraints}
+The above analysis provides a set of constraints to a valid (under
+little assumptions) half edge data structure.  When a variable is fed
+into a function, it must be not $\emptyset$:
+
+\begin{equation}
+  \begin{cases}
+    o_e(o_e(e)) = e &\text{\Cref{eq:o_e}}\\
+    \VAL(v) = 0 \Rightarrow e_v(v) = \emptyset &\text{\Cref{eq:e_v}}\\
+    \VAL(v) > 0 \Rightarrow
+    e_v(v) \neq \emptyset \Rightarrow v_e(e_v(v)) = v &\text{\Cref{eq:e_v}}\\
+    n_e(e) \neq \emptyset \Rightarrow e = p_e(n_e(e)) &\text{\Cref{eq:np_e}}\\
+    p_e(e) \neq \emptyset \Rightarrow e = n_e(p_e(e)) &\text{\Cref{eq:np_e}}\\
+    \VAL(v)=2 \Rightarrow o_e(n_e(o_e(n_e(e_v(v))))) = e_v(v) &\text{\Cref{eq:1d-manifold}}\\
+    f_e(n_e^k(e_f(f))) = f, \quad k=0, 1, \cdots &\text{\Cref{eq:fe}}
+  \end{cases}.
+\end{equation}
+
+\section{Prev Doc}
+%And every edge has opposize edge, i.e. the start and end vertex are opposite.
+
+Define two functions from $E$ to $V$:
+\begin{align}
+&from(e) \rightarrow v_a\\
+&to(e) \rightarrow v_b
+\end{align}
+where, $v_a$ is the start vertex of $e$, and $v_b$ is the end vertex of $e$.
+
+In order to facilitate discussion, define an edge $e\in E$ as a triple:
+\begin{equation}
+e=\langle v_a, v_b, \kappa \rangle
+\end{equation}
+where, $0\leq \kappa <|CE(v_a,v_b)|$, $CE$ is defined below, the edges set with 
+start vertex $v_a$ and end vertex $v_b$.
+\begin{equation}
+CE(v_a,v_b)=\{e \ |\ e\in E, from(e)=v_a,to(e)=v_b\}
+\end{equation}
+
+More specially, if $v_a=v_b$, $e$ is a self-loop.
+
+If a vertex $v\in V$ don't have adjacent edges, i.e. there is no edge from $v$, $v$ is isolated.
+
+The faces set have some directed faces:
+\begin{equation}
+F=\{ f_i \ |\ i\in \mathbb{Z}, 0\leq i < nf \}
+\end{equation}
+where, $nf$ is the number of faces. Some faces may have
+common edges, i.e. $\partial f_i \cap \partial f_j \neq \emptyset$. 
+And even some faces have the same edges set, i.e. $\partial f_i=\partial f_j$.
+Here, $\partial f$ is the boundary edges of $f$, and $\partial f\in E$,
+which is defined clearly as multi tuples below.
+\begin{equation}
+\begin{split}
+\partial f = \{ e_{f,i}\ |\ i\in \mathbb{Z}, 0\leq i<en \}
+\label{eq:boundface}
+\end{split}
+\end{equation}
+where, $en$ is the number of edges in $f$,and
+\begin{align}
+&\forall i\in \mathbb{Z}, 0\leq i <en,to(e_{f,i})=from(e_{f,(i+1)mod\ en})\\
+&\forall \ 0\leq a,b<en,\ e_{f,a}= e_{f,b}\ \mbox{iff}\ a=b.
+\end{align}
+
+According to above definition, give a function from $F\times \mathbb{Z}$ to $E\cup \emptyset$:
+\begin{equation}
+fedge(f,p)=\left\{
+\begin{aligned}
+&e_{f,p} &0\leq p<|f|\\
+&\emptyset & \mbox{otherwise}
+\end{aligned}\right.
+\label{eq:fedge}
+\end{equation}
+where, $f\in F, p\in \mathbb{Z}, e_{f,p}\in \partial f$ defined as Eq~\ref{eq:boundface}.
+$|f|$ is the valence of $f$, i.e. the edge number of $f$. 
+$\partial f_i$ is the boundary edges set of $f_i$, $\partial f_i\subset E$.
+$|f|=1$, the face is a self-loop. $|f|=2$, the face is two side face.
+
+Here, define a bijective function from $E$ to $E$:
+\begin{equation}
+oppo(e_i) \rightarrow e_j
+\end{equation}
+where, $e_i=\langle v_a,v_b,\kappa\rangle, e_j=\langle v_b,v_a,\kappa\rangle, v_a,v_b\in V$, 
+here $\kappa$ is defined above.
+
+For descripting an edge adjacent many faces, here introducing a set $B$.
+Now, define a set of boundary edges of faces:
+\begin{equation}
+B = \{ b_i\ |\ i\in \mathbb{Z}, 0\leq i<nb\}
+\end{equation}
+where, $nb$ is $\sum_{f\in F}|\partial f|$, $\forall b_i\in B, b_i=\langle e,f \rangle$, 
+$e\in E, e\in \partial f, f\in F$. Every element of $B$ is a two tuple.
+
+To sum it up, $E$ is based on $V$, $F$ is based on $E$, and $B$ is based on $E$ and $F$.
+
+\subsection{More about $E$}
+$\mathcal{M}$ has boundary $\partial \mathcal{M}$. And $\partial \mathcal{M}\subset E$.
+For edges set $E$, it can be represented by:
+\begin{equation}
+E = (\bigcup_{i=0}^{|F|-1}\partial f_i) \cup \partial \mathcal{M}\cup E_I
+\end{equation}
+where, $E_I$ is the isolated edges set, which don't have any adjacent faces. 
+And define $E_I\cap \partial \mathcal{M}=\emptyset$, i.e. boundary edges 
+don't include isolated edges.
+
+As general, the boundary edges of $\mathcal{M}$ should have the property:
+\begin{equation}
+\partial \mathcal{M} \cap \bigcup_{f\in F} \partial f = \emptyset
+\end{equation}
+
+Also, a property can be got:
+\begin{equation}
+\forall e\in E \Rightarrow \exists f\in F, e\in \partial f \mbox{ or } e\in \partial \mathcal{M}
+\mbox{ or }e\in E_I.
+\end{equation}
+
+\subsection{Some Useful Functions}
+
+Define a function from $E$ to $V$:
+\begin{equation}
+verts(e)\rightarrow \{v_i,v_j\}, \mbox{ if }e=\langle v_i,v_j,\kappa \rangle \in E
+\end{equation}
+where, $v_i,v_j\in V$. Here, define $\partial e = verts(e)$.
+
+Define a function from $F$ to $V$:
+\begin{equation}
+verts(f)\rightarrow \{v_k\ |\ k\in \mathbb{Z},
+0\leq k<|f|, v_k=e_{f,k}\}
+\end{equation}
+where, $f\in F$, $e_{f,k}$ is defined in Eq~\ref{eq:fedge}.
+
+Define a function from $E$ to $B\cup \emptyset$:
+\begin{equation}
+bedge(e)=\left \{
+\begin{aligned}
+&b& \mbox{if } \exists f\in F,\mbox{ s.t }
+e\in \partial f, b=\langle e,f \rangle\\
+&\emptyset & \mbox{otherwise, i.e. }e\mbox{ doesn't have adjacent faces.}
+\end{aligned}\right.
+\end{equation}
+where, $e\in E, b\in B$. The function is surjective.
+
+Define a function from $B$ to $E$:
+\begin{equation}
+edge(b) \rightarrow e
+\end{equation}
+where, $b\in B, e\in E$, and $b=\langle e,f \rangle$. 
+The function is surjective if $E$ doesn't have isolated edges,
+which don't have adjacent faces.
+
+For set $B$, define a function from $B$ to $B$:
+\begin{equation}
+next(b_i) \rightarrow b_j
+\end{equation}
+where, $\exists f\in F, p\in \mathbb{Z}, 
+\mbox{ s.t. } edge(b_i)=e_{f,p},edge(b_j)=e_{f,(p+1)mod|f|}$, $e_{f,p}\in \partial f$, 
+$|f|$ is the number of edges in $f$. The function is bijective.
+
+Here, define a similar function from $B$ to $B$:
+\begin{equation}
+prev(b_i) \rightarrow b_j, \mbox{ if }next(b_j)=b_i.
+\end{equation}
+
+Now, define a function from $B$ to $F$:
+\begin{equation}
+face(b) \rightarrow f
+\end{equation}
+where, $b=\langle e,f \rangle, f\in F, e\in E, b\in B$. The function 
+is surjective.
+
+For an edge $e\in E$, there are many $b\in B$, so that $edge(b)=e$. Here, define:
+\begin{equation}
+BE(e)=\{b\ |\ b\in B, edge(b)=e \}
+\end{equation}
+
+Define a function from $B$ to $B$:
+\begin{equation}
+down(b_i)=
+\left\{
+\begin{aligned}
+&b_j & \mbox{if }|BE(edge(b_i))|>1\\
+&b_i & \mbox{otherwise}
+\end{aligned}
+\right.
+\end{equation}
+where, $face(b_i)=face(b_j)=f\in F, edge(b_i)=edge(b_j)=e\in E$, 
+and $\exists p\in \mathbb{Z}, 0\leq p<|BE(e)|$,
+s.t. $b_i=BE(e)_p,b_j=BE(e)_{(p+1)mod\ |BE(e)|}$, $BE(e)_i$ is the $i$th element of $BE(e)$.
+
+Here, define a function similar to $down$ from $B$ to $B$:
+\begin{equation}
+up(b_i) \rightarrow b_j, \mbox{ if }down(b_j)=b_i.
+\end{equation}
+
+Now, there is no function from $V$ to other sets. For query and mesh operation,
+this type function should be necessary. Here, define a function from $V$ to $E$:
+\begin{equation}
+vedge(v)=
+\left\{
+\begin{aligned}
+&e& \mbox{ if }\exists e\in E, from(e)=v\\
+&\emptyset & \mbox{otherwise, i.e. an isolated vertex}
+\end{aligned}\right.
+\end{equation}
+
+For the discussion that follows, define a set:
+\begin{equation}
+VE(v)=\{e\ |\ e\in E, from(e)=v\}, v\in V
+\end{equation}
+
+Sometimes, from a vertex the adjacent edges should be got. To get it, define
+a function from $E$ to $E$:
+\begin{equation}
+cnext(e_i) =\left\{
+\begin{aligned}
+&e_j& \mbox{if } |VE(from(e_i))|>1\\
+&e_i& \mbox{otherwise}
+\end{aligned}\right.
+\end{equation}
+where, if $v=from(e_i),|VE(v)|>1$, $\exists p\in \mathbb{Z}, 0\leq p<|VE(v)|$, 
+s.t. $e_i=VE(v)_p,e_j=VE(v)_{(p+1)mod\ |VE(v)|}$, here $VE(v)_i$ is the $i$th element
+of $VE(v)$.
+
+Now define the other function from $E$ to $E$:
+\begin{equation}
+cprev(e_i)\rightarrow e_j, \mbox{ if } cnext(e_j)=e_i.
+\end{equation}
+
+\subsection{More Discussion About $B$}
+Set $B$ can represent $F$. By $next$ or $prev$ can get all faces' edges.
+$\forall b\in B, [b]_{next}$, which is a equality based on $next$, can represent a face $f\in F$.
+
+Below discussion, use a tretrad $(V,E,F,B)$ to represent $\mathcal{M}$.
+
+\subsection{Non-manifold Edge}
+
+If an edge has more than one adjacent faces or don't have adjacent face, it
+is a non-manifold edge:
+\begin{itemize}
+\item $bedge(e)=\emptyset,bedge(oppo(e))=\emptyset$. {\color{red} Maybe need to discuss}
+\item $bedge(e)\neq\emptyset,up(bedge(e))\neq e$.
+\item $bedge(oppo(e))\neq \emptyset, up(bedge(oppo(e)))\neq oppo(e)$.
+\end{itemize}
+
+If an edge is a manifold edge:
+\begin{itemize}
+\item $bedge(e)\neq\emptyset,up(bedge(e))= e,bedge((oppo(e)))=\emptyset$.
+\item $bedge(e)\neq\emptyset$, $up(bedge(e))= e$,
+$bedge((oppo(e)))\neq \emptyset$, $up(beddge((oppo(e))))= oppo(e)$.
+\item $bedge(e)=\emptyset$, $bedge(oppo(e))\neq \emptyset$, $up(bedge(oppo(e)))= oppo(e)$.
+\end{itemize}
+
+\subsection{Non-manifold Vertex}
+
+\begin{itemize}
+\item A vertex belong to an non-manifold edge.
+\item A vertex is a pinched vertex.
+\item A vertex is an isolated vertex, $edge(v)=\emptyset$. 
+{\color{red} Maybe need to discuss}
+\end{itemize}
+
+\subsection{How to check manifold}
+
+According to above two sections, the manifold mesh can be checked easily.
+
+\subsection{Boundary Of Mesh}
+\paragraph{Boundary Edges} $e\in E$ is a boundary edge $e\in \partial \mathcal{M}$,
+if $bedge(e)=\emptyset$. A boundary edge can have more than one adjacent faces.
+\paragraph{Boundary Vertex} $v\in V$ is a boundary vertex, if
+\begin{equation}
+\exists e\in E, from(e)=v, bedge(e)=\emptyset.
+\end{equation}
+\paragraph{Boundary Face} $\forall \ f\in F$, if 
+$\exists e \in \partial f\ \mbox{and}\ oppo(e) \in \partial \mathcal{M}$, 
+$f$ is a boundary face.
+
+
+\subsection{Hole Of Mesh}
+For non-manifold mesh, holes can not be found. Then, holes discussion followed 
+are ones that can be got exactly without ambiguity.
+
+Here, define a set representing holes in $\mathcal{M}$:
+\begin{equation}
+H=\{h_i\ |\ i\in \mathbb{Z}, 0\leq i<nh\}
+\end{equation}
+where, $nh$ is the number of holes in $\mathcal{M}$.
+
+For a hole $h\in H$,
+\begin{equation}
+\partial h\in \partial \mathcal{M}, \partial h\in E
+\end{equation}
+where, $\partial h$ is the edges set of $h$.
+
+\paragraph{How to find a hole in $\mathcal{M}$} A hole can be found from
+an boundary edge.
+
+\subsection{Add}
+\paragraph{Add Vertex} When adding a vertex to $\mathcal{M}$, a new mesh can be got:
+\begin{equation}
+\mathcal{M}'(V\cup\{v_a\},E,F,B)=\mathcal{M}(V,E,F,B)+v_a
+\end{equation}
+
+\paragraph{Add Edge} When adding an edge to $\mathcal{M}$, a new mesh can be got:
+\begin{equation}
+\mathcal{M}'(V',E',F,B)=\mathcal{M}(V,E,F,B)+e_a
+\end{equation}
+where,
+\begin{align}
+&V'=V\cup verts(e)\\
+&E'=E\cup \{e_a,oppo(e_a)\}
+\end{align}
+
+\paragraph{Add Face} When adding a face to $\mathcal{M}$, a new mesh can be got:
+\begin{equation}
+\mathcal{M}'(V',E',F',B')=\mathcal{M}(V,E,F,B)+f_a
+\end{equation}
+where,
+\begin{align}
+&V'=V\cup verts(f_a)\\
+&E'=E\cup \partial f_a \cup oppo(\partial f_a)\\
+&F'=F\cup \{f_a\}\\
+&B'=B\cup \{\langle e,f_a \rangle\ |\ e\in \partial f_a\}
+\end{align}
+where, $oppo(\partial f_a)=\bigcup_{e\in \partial f_a}oppo(e)$.
+
+To sum it up, add operation can be subdivided into several steps.
+For add face operation, it can be broken into three steps: add vertices, add edges
+and add face. For add edge operation, it can be broken into two steps: add vertices 
+and add edges.
+
+\subsection{Delete}
+
+\paragraph{Delete Face} When deleting a face in $\mathcal{M}$, a new mesh can be got:
+\begin{equation}
+\mathcal{M}'(V,E,F',B')=\mathcal{M}(V,E,F)-f_d
+\end{equation}
+where,
+\begin{align}
+&F'=F-\{f_d\}\\
+&B'=B-\{\langle e,f_d \rangle \ |\ e\in \partial f_d \}
+\end{align}
+
+\paragraph{Delete Edge} When deleting an edge in $\mathcal{M}$, a new mesh can be got:
+\begin{equation}
+\mathcal{M}'(V',E',F',B')=\mathcal{M}(V,E,F,B)-e_d
+\end{equation}
+when deleting an edge, the opposite edge also should be deleted in order to keep 
+$oppo$ function bijective, so,
+\begin{align}
+&V'=V\\
+&E'=E-\{e_d,oppo(e_d)\}\\
+&F'=F-face(BE(e_d))\cup face(BE(oppo(e_d)))\\
+&B'=B-BE(e_d)-BE(oppo(e_d))
+\end{align}
+where,
+\begin{equation}
+face(BE(e_d))=\bigcup_{b\in BE(e_d)}face(b).
+\end{equation}
+
+\paragraph{Delete Vertex} 
+When deleting a vertex in $\mathcal{M}$, a new mesh can be got:
+\begin{equation}
+\mathcal{M}'(V',E',F')=\mathcal{M}(V,E,F)-v_d
+\end{equation}
+where,
+\begin{align}
+&V'=V-\{v_d\}\\
+&E'=E-VE_{v_d}\cup oppo(VE_{v_d})\\
+&F'=F-face(BE(VE_{v_d}))\cup face(BE(oppo(VE_{v_d})))\\
+&B'=B-BE(VE_{v_d})\cup BE(oppo(VE_{v_d}))
+\end{align}
+here,
+\begin{equation}
+oppo(VE_{v_d})=\bigcup_{e\in VE_{v_d}}oppo(e).
+\end{equation}
+
+To sum it up, every delete operation can be subdivided into several parts.
+For deleting vertex, it can be broken into three parts: delete faces,
+delete edges, and delete vertex. For deleting edge, it can be broken
+into two parts: delete faces, delete edges.
+
+\subsection{Query}
+
+Query edges adjacent of vertex: using $cnext$ and $cprev$.
+
+Query faces adjacent of vertex: using $cnext$, $cprev$,$bedge$ and $face$.
+
+Query faces adjacent of edges: using $bedge$ and $face$.
+
+\subsection{Merge vertices}
+
+Here, discuss an operation $merge(\mathcal{M}(V,E,F,B),e), e\in E$, 
+which merge $from(e)$ to $to(e)$.
+
+The new mesh will be:
+\begin{equation}
+\mathcal{M}'(V',E',F',B')=merge(\mathcal{M}(V,E,F,B),e).
+\end{equation}
+where,
+\begin{align}
+&V' = V-\{from(e)\} \\
+&E' = E-\{e\}\\
+&F' = F-face(BE(e))\cup face(BE(oppo(e)))\\
+&B' = B-BE(e)\cup BE(oppo(e))
+\end{align}
+After merge, $next$ and $prev$ from $B$ to $B$ should be updated.
+
+\section{Manifold Analysis}
+
+A manifold\footnote{Around every point of mesh, there is a neighborhood homeomorphic 
+disk or half-disk.} mesh is useful in many applications of computer graphics 
+because it has many good properties.
+
+\subsection{Some Properties}
+A manifold mesh has some properties:
+\begin{itemize}
+\item Every edge has one or two adjacent faces expect isolated edges. 
+If with two, these two faces have the same 
+direction.
+\item Every vertex has at zero or two boundary edges expect isolated vertices.
+\end{itemize}
+
+The first condition can be written as:
+\begin{equation}
+\partial f_i \cap \partial f_j = \emptyset, \forall \ f_i,f_j\in F,\ i\neq j
+\label{eq:edgecondition}
+\end{equation}
+Above condition cannot deduce that $\mathcal{M}$ is a manifold.
+
+The second condition can be written as:
+\begin{equation}
+\begin{split}
+&BV(v)=\{e\ |\ e\in E, from(e)=v,bedge(e)=\emptyset\},\\
+&|BV(v)|<2.
+\end{split}
+\end{equation}
+
+If there are many holes in mesh $\mathcal{M}$, define them as:
+\begin{equation}
+H=\{h_i\ |\ i\in \mathbb{Z}, 0\leq i<nh \}
+\end{equation}
+where, $nh$ is the holes number in $\mathcal{M}$. $h_i$ is one hole of $\mathcal{M}$.
+
+According above, The below can be got:
+\begin{align}
+&\partial \mathcal{M} = \bigcup_{h\in H} \partial h\\
+&\partial h_i\cap \partial h_j = \emptyset, \forall h_i,h_j \in H, h_i\neq h_j\\
+&\partial h \cap \partial f = \emptyset, \forall h\in H, f\in F
+\end{align}
+where, $\partial h_i$ is the edges set of hole $h_i$.
+
+\subsection{Flip Edge}
+This operation is only used in triangle mesh.
+
+% {\color{red}
+% When fliping an edge $e$, $e$ and $oppo(e)$ should not be a boundary edge, 
+% i.e. $e,oppo(e) \notin \partial \mathcal{M}$.
+
+% Define $f_a=face(e),f_b=face(oppo(e)), f_a\neq \emptyset, f_b\neq \emptyset$.
+% Here, $|f_a|=|f_b|=3$, i.e. they are triangles.
+
+% Define $e_o= oppo(e), e_n=next(e), e_{op}=prev(oppo(e)), e_p=prev(e), e_{on}=next(oppo(e))$.
+
+% Define $v_a=from(e), v_b=to(e), v_c=to(e_n), v_d=from(e_{op})$.
+
+% When $\exists e\in E, v_c=from(e),v_d=to(e)$, $e$ can not be fliped, which can lead to
+% edges with the same vertices.
+
+% For fliping an edge, the two faces should have new corresponding edges:
+% $f_a=\langle e_o,e_{op},e_n \rangle,f_b=\langle e,e_p,e_{on} \rangle$.
+
+% Now, according to the new faces, the new $next$ and $prev$ about the two faces can be got.}
+
+\subsection{Collapse Edge}
+
+
+
+\subsection{Split Edge}
+
+
+\section{Implementation}
+We introduce the basic idea of programming techniques used in this
+implementation, then introduce how to apply them into the design.
+
+{\em Policies} are classes (or class templates) to inject behavior
+into a class.  {\em Traits} are class templates to extract properties
+from a generic type.
+
+For efficiency, the library will provide traits and policies for
+triangular mesh, quadrilateral mesh and hybrid mesh.  The traits
+should be able to extended by users for specific requirements.
+
+The properties will be highly separated from the topological
+structure, and can have flexible data structure for efficiency and
+simplicity.
+
+A set of operations, which is isolated to traits and property data
+structure, should be provide from very basic ones, which may not
+preserve manifold property, to high level ones, which provides some
+typical algorithms.
+
+\subsection{Implementation Analysis and Design}
+
+Half-edge is mainly used for a mesh with changing topology,
+i.e. adaptivity, simplification etc.  The efficiency of this data
+structure mainly comes from locality, i.e. minimal query and change
+for an atom operation.
+
+The same type of entities in a mesh should be put into a container,
+and link to each other.  There are several possible way to implement
+the link.
+\begin{itemize}
+\item Pointer or iterator: directly refer to the object, but will make
+  it difficult to bind with external property.
+\item Hashing: through an auxiliary mapping, i.e. index to address
+  etc.  Additional cost, but can support external property easier.
+\end{itemize}
+
+OpenMesh uses handle (index into an array), which needs an global
+query (array[index]) to get the entity. Such a strategy has two
+problems: first, the container (array) will be provided for every
+query, thus, one more argument is required (in OpenMesh, it is
+\CODE{this}); it needs a global query, which may be costly for other
+containers, like map.  We prefer the strategy of CGAL, which uses
+iterator although they give it an alias of handle.  To use iterator,
+to detect an invalid iterator, CGAL use customized iterator (ref:
+\verb|HalfedgeDS_iterator_adaptor.h|).  Indeed, the iterator
+constructed using default constructor looks good as a ``null''.
+
+Another issue about handle and iterator is in function call with const
+decorator.  Some function just collects information of a mesh, thus
+the input mesh should be const.  Using iterator, it can only return
+const-iterator.  One possible method is get iterator from
+const-iteartor, but it breaks the const way.
+
+A solution is use the address as the handle, then we can have both
+advantage with the defect of using cast. Or use const-iterator as
+handle, and every modification pass the const-iterator into the
+instance, i.e. instance can cast const-iterator into iterator.
+
+An entity is associated with a handle, which has no ``++'' etc,
+operator, but should be orderable.
+
+Query is the most important operation for mesh.  It can be classified
+as {\em local} query and {\em global} query.  Local query means to
+access the neighboring (according to the half-edge) entities from the
+current one, and the global query means giving a handle in the mesh to
+fetch the corresponding one.  Global query is necessary, even only for
+topological part, e.g. delete an entity, which must inform the pool
+(container).  Thus handle is difficult to avoid.  Usually the handle
+is the iterator of container.
+
+  Usually, property query is global.
+Local query should has complexity $O(1)$. However, global one may be
+more costly, and needs handle, thus should be used as less as
+possible.  Thus, the properties can be classified as ``internal''
+properties which are inside of the entity and ``external'' ones which
+are outside of the entity.
+
+Based on the above analysis, using memory address for the neighboring
+entities is better than using handle (like OpenMesh and CGAL).  The
+issue is that there is not handle intrinsically defined in this data
+structure, and global query looks difficult.  There are two possible
+solutions: if the internal storage is array like, handle can be
+defined from address, otherwise, we can use property.
+
+
+One of the most important question is how to connect entity to
+property.  One of the trivial way is to build property into entity,
+but this strategy lacks flexibility and usually leads to high cost.
+Another way is to use handles (e.g. index) associated to the entities
+to query the properties.  A common way (like OpenMesh) intrinsically
+include handle according to entities
+
+Conceptually, the objects in the library include:
+\begin{itemize}
+\item entity: point, half-edge and face.
+\item handle: non-serializable unique key to the entity in a same
+  type in a mesh.
+\item entity pool:  provides mapping from handle to entities.
+\item property pool: provides mapping from handle to properties.
+\item mesh: composed of the entity pool, property pool, and related
+  policy and traits.
+\item operators: applying non-constant operations on mesh.
+\end{itemize}
+
+Handle, may not be the index of entities.  They may not continuously
+fill the rage from $0$ to $n$.  We can use property to maintain the
+required index, or, alias of entity.  A simplest design of handle is
+the memory address of the entity, but leaves the detection of invalid
+difficult.
+
+
+{\em Pool} (for both entity and property) can be in different types as
+shown in \Cref{tab:pool}, which is the key of the library. \TODO{To
+  verify: OpenMesh uses array with tag (removal support), CGAL uses
+  array (no removal support) or list (removal support).}
+\begin{table}[htb]
+  \begin{center}
+    \begin{tabular}{|c|cc|}
+      \hline
+      type&query&modify\\\hline
+      array&$1$&$N$\\\hline
+      hash$^*$&1&1\\\hline
+      list&$N$&$1$\\\hline
+      map&$\log(N)$&$\log(N)$\\\hline
+    \end{tabular}
+  \end{center}
+  \caption{Types of pool. $^*$ is customized to use more space for
+    efficiency.}
+  \label{tab:pool}
+\end{table}
+
+The operations will be stacked by layers. The 0-layer provides atom
+operations which may even break the manifold property, i.e. insert a
+dangling point.  The 1-layer provides atom operations which keep
+manifold property, i.e. edge flip. The 2-layer implements some typical
+algorithms.
+
+\section{Evaluation}
+
+\section{Conclusion}
+\end{document}
+

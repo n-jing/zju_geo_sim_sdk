@@ -1,0 +1,99 @@
+dnl Configure.in for nn
+AC_INIT(CUSTOMISE)
+
+dnl AC_FIND_HEADER(HEADER [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
+dnl Check for the specified header. If located then
+dnl found_header=yes and header_path=the path where found.
+dnl If not located, then found_header=no and header_path is
+dnl null.
+dnl
+AC_DEFUN(AC_FIND_HEADER,
+[AC_MSG_CHECKING(for $1)
+header_path=
+found_header=no
+# Look for the header file in a standard set of common directories.
+   for ac_dir in                \
+      $includedir               \
+      $prefix/include           \
+      $secondary_prefix/include	\
+      /usr/include              \
+      /usr/include/sys          \
+      /usr/unsupported/include  \
+      /opt/gnu/include          \
+      /opt/misc/include         \
+      /usr/local/include        \
+      ; \
+   do
+     if test -r "$ac_dir/$1"; then
+        header_path=$ac_dir
+	found_header=yes
+	break
+     fi
+   done
+AC_MSG_RESULT($found_header)
+
+test "$found_header" = yes && $2
+test "$found_header" = no && $3
+])
+
+
+
+dnl AC_FIND_LIB(LIB [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
+dnl Check for the library. If located then
+dnl found_lib=yes and lib_path=the path where found.
+dnl If not located, then found_lib=no and lib_path is
+dnl null.
+dnl
+AC_DEFUN(AC_FIND_LIB,
+[AC_MSG_CHECKING(for -l$1)
+rqst_lib=$1
+lib_path=
+found_lib=no
+# Look for the library file in a standard set of common directories.
+   for ac_dir in                \
+      $libdir               \
+      $prefix/lib${LIBEXT}           \
+      $secondary_prefix/lib${LIBEXT}           \
+      /usr/lib${LIBEXT}              \
+      /usr/unsupported/lib${LIBEXT}  \
+      /opt/gnu/lib${LIBEXT}          \
+      /opt/misc/lib${LIBEXT}         \
+      /usr/local/lib${LIBEXT}        \
+      ; \
+do
+  for ac_extension in a so sl; do
+    if test -r $ac_dir/lib${rqst_lib}.$ac_extension; then
+      lib_path=$ac_dir
+      found_lib=yes
+      break 2
+    fi
+  done
+done
+AC_MSG_RESULT($found_lib)
+
+test "$found_lib" = yes && $2
+test "$found_lib" = no && $3
+])
+
+dnl Get the shell variable to override local customisations.
+AC_DEFUN([AC_CUSTOMISE],
+[dnl
+    AC_BEFORE([$0], [AC_DEFAULT])dnl
+    if test -r CUSTOMISE; then
+        . ./CUSTOMISE
+    fi
+])
+
+dnl Checks for programs.
+AC_CUSTOMISE
+AC_PROG_CC
+AC_PROG_INSTALL
+dnl AC_PROG_RANLIB
+
+AC_CHECK_PROG(AR, ar, ar, :)
+AC_CHECK_PROG(F2C, f2c, f2c, :)
+
+dnl Checks for header files.
+AC_HEADER_STDC
+
+AC_OUTPUT(makefile)

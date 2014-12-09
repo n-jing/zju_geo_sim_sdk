@@ -1,0 +1,285 @@
+\documentclass[9pt,twocolumn]{extarticle}
+
+\usepackage[hmargin=0.75in,vmargin=0.75in]{geometry}
+\setlength{\parskip}{1ex plus 0.5ex minus 0.5ex}
+\usepackage{amsmath}
+
+\newcommand{\Diff}{\mathcal{D}}
+
+\title{How to Use the Generic Function}
+\author{Jin Huang}
+
+\begin{document}
+\maketitle
+
+\section{Design}
+Given a function $f:R^n\rightarrow R^m$, the typical operations are
+evaluate the value, gradient (Jacobian), Hessian etc, and add them to
+certain buffer so that the user can safely discard the non-zero
+pattern.  Thus, we unify them as the following for the computation of
+$y = y+\alpha f^{(k)}(x)$:
+\begin{equation}
+  \mbox{eval}(f, k, x, y, \alpha), \quad x \in R^n,
+\end{equation}
+where $k=0$ for value, $k=1$ for gradient, $k=2$ for Hessian etc.  The
+dimension of $y$ is $R^m(\otimes R^n)^k$.  Obviously, for high
+dimensional function, dense representation of $y$ for large $k$ costs
+too much.  Thus, we adopt a general sparse representation for non-zero
+entries:
+\begin{equation}
+  (i, j_1, j_2, \cdots, j_k): \frac{\partial f_i}{\partial (x_{j_1}, x_{j_2}, \cdots, x_{j_k})}.
+\end{equation}
+
+We need another function to get the pattern:
+\begin{equation}
+  \mbox{patt}(f, k, x, P), \quad x \in R^n, P \in I^{(k+1)\times l},
+\end{equation}
+where $l$ indicates number of non-zero entries.  To make sure that no
+memory is allocated from $f$, when $P$ is null, the function return
+number of non-zero entries, or $-1$ for dense representation.
+
+For sparse storage of a tensor $T$, two representations are provided:
+coordinates and general csc format.  The coordinates is a set of
+length $k+1$ tuple of integers.  The csc representation is a series of
+sorted arrays $a_j, j = 0, 1, \cdots, k$ that map coordinates $(c_0,
+c_1, \cdots, c_k)$ to an address $a(\{c_i\})$ in an value array $A$.
+
+If we want to have a representation of a sparse tensor that is
+compatible with csc format, i.e. the last two dimension is in csc
+format, we will have problem. Given a sparse tensor $n \otimes m
+\otimes h$ with $z$ number of non-zeros, the coordinates storage uses
+$3z$.  However, on each slides of $m \otimes h$, there is a vector
+with length $m$ when using csc format, and thus the total cost will be
+$nm$ which is not affordable for high dimensional tensor.
+
+%% \begin{equation}
+%%   \newcommand{\LB}[1]{\lfloor#1\rfloor}
+%%   \begin{split}
+%%     A(a(\{c_i\})) &= T(\{c_i\})\\
+%%     a(\{c_i\}) &= \{i|a_k(i)=c_k, l_{k-1} \leq i < u_{k-1}\}\\
+%%     l_k &= \max_l a_k(l) \leq c_k, l_{k-1} \leq l < u_{k-1}\\
+%%     u_k &= \min_u a_k(u) > c_k, l_{k-1} \leq u < u_{k-1}\\
+%%     l_{-1} &= 0\\
+%%     u_{-1} &= \mbox{len}(a_0)\\
+%%   \end{split}
+%% \end{equation}
+
+\section{Operations}
+This is the sole of the function library.  The following operations
+are important.
+
+\begin{equation}
+  \begin{split}
+    \mbox{sumsqr}(f)(x) &= \sum_i f_i(x)^2\\
+    \mbox{sum}(f)(x) &= \sum_i f_i(x)\\
+    \mbox{fcat}(f_1, f_2, \cdots, f_n)(x) &= (f_1(x), f_2(x), \cdots, f_n(x))\\
+    f(x) \mbox{op} R &= f(x) \mbox{op} R\\
+    f(x) \pm R^m &= f(x) \pm R^m\\
+    \mbox{diff}(f)(x) &= f'(x)
+  \end{split}
+\end{equation}
+
+fcat makes the index of function change.  It is often used with
+sumsqr, and such an combined operation can be replace by sum and
+sumsqr.  Indeed, fcat or xmapper will introduce the transform of
+coordinates, it will significantly reduce the performance, because we
+cannot use inline, template for this (both of them are compiling time
+computation).  However, for experiments, I want to implement it.
+
+\section{Performance Issue}
+In eval, to get a global address from a (local) coordinates, it will
+cost a lot.  In csc, each query is in complexity $O(1)+O(\log(nnzi))$,
+where $nnzi$ is a number of non-zeros in $i$ slot, which is often
+small.  However, in coo, the complexity is
+$O(\log(nnz))+O(\log(nnzi))$.  One can use cache (not in function,
+because function should be independent of global address), but it may
+cost too much memory.
+
+I think it is good to assume that the tensor has the maximum dimension
+2, so that we can use csc.  But how to represent the second order
+derivative of a $R^n \rightarrow R^m, m > 1$ function?  Always provide
+cache (ptr) for the last second dimension?  We can also try to always
+make $m$ as the cached dimension by asking the function to do that.
+After that, there is no Hessian, but only Jacobian of Jacobian.
+According to this idea, one way is ask a function object to provide
+the value and an associated function object for its Jacobian.  In
+other words, Jacobian of a function is not a member function, but an
+associated function object, whose value is the Jacobian of its parent
+instance.  Using the differential operator $\Diff$, we have:
+\begin{equation}
+  \Diff f: R^{n} \rightarrow R^{nm},
+\end{equation}
+and then we set the ptr at the first dimension $nm$.  If $m$ is small,
+that is OK.  Otherwise, reduce it first.  Another problem where should
+the real implementation be?  In $f$ or $\Diff f$?
+
+Another possible way to solve the problem is to make a clear
+difference on the dimension of $y$ and $x$.  Each dim of $y$ hold a
+index to an entity that is value for $\Diff^0$, pointer of $(x idx,
+value)$ seq for $\Diff^1$ (csc), or pointer to csc.  In a word, the
+storage for $y$ is always dense, then in each slot for $y$, the
+storage format is value, sparse vector in coo, and sparse matrix in
+csc.  To unify them, we view them as: the last dimension is $(\Pi_n
+i_x, value)$.  If we use $S$ for sequential storage, $C$ for
+coordinate storage, csc is $S\otimes C$.  So a possible way to is:
+\begin{equation}
+  \begin{split}
+    \Diff^0 &: S_m(V_m, i_0)\\
+    \Diff^1 &: S_m((C_{nnz}, V_{nnz}, i_1)_m, i_0)\\
+    \Diff^2 &: S_m(S_n((C_{nnz}, V_{nnz}, i_2)_n, i_1)_m, i_0)\\
+    &\cdots
+  \end{split}
+\end{equation}
+where the two dimensional ones are in csc format.  Vector, vector of
+sparse vector, vector of vector of sparse vector.
+
+he operators for $S$ is:
+\begin{equation}
+  S(X, i) = X+i.
+\end{equation}
+
+\begin{equation}
+  (C, X, i) = X+\mbox{at-pos}(C, i).
+\end{equation}
+
+One most difficult thing is Hessian of a function with $m>1$. The
+result is a set of (sparse) matrices.  For example, a function that
+evaluate (approximated) absolute value of a normal of a triangle.  In
+such a case, the nnz of the Hessian is $3*9*9=243$. but if write this
+function in the form $10k \rightarrow 3$, the cost will be
+$3*10k*81=2430k$.
+
+One way is to provide $x$ mapper, so that the function is independent
+of total variables, i.e. making the function is not only independent
+of mapping of $y$ (in fcat), but also the specific index in a problem.
+The mapper will promote the function from $n' \rightarrow m'$ to $n
+\rightarrow m$.  In FEM, this make many number of mapper that do not
+perform calculation, and just map the variables and forward them to
+elementary function to evaluate, and remap to global ones.  With the
+help of mapper, the above design may work.  But, when each element
+function need to hold the element dependent variable, e.g. the
+original volume, there must be pair of (mapper, function).  If $k$ dim
+is sparse, $k+1$ must be sparse, thus no $CS$ format.
+
+There are more possible formats for sparsity. Compressed coordinates:
+\begin{equation}
+  \begin{split}
+    p_d(i) &= \mbox{LB}(p_d + b_d, p_d + e_d, i_d)\\
+    b_{d+1} &= v_d[p_d(i)]\\
+    e_{d+1} &= v_d[p_d(i)+1].
+  \end{split}
+\end{equation}
+Compressed pointer can also be defined.
+
+The mapper is a permutation matrix indeed.  There are three types of
+permutations: first, identity; second, an offset; last, sparse index.
+The second one can be transform to the first one by offset the value
+pointer.
+
+
+\begin{equation}
+  \mbox{mapper}(\mbox{eval}(f, k, m_x(x), m_y(y), \alpha)), \quad x \in R^n,
+\end{equation}
+
+Caller (optimizer or other wrapper functions) may take some
+assumptions to the function.  For instance, usual large scale
+optimizer hopes a function with $n\rightarrow 1$ and sparse Hessian,
+and square, power, log want the source function has small dense
+structure. Instead of asking the caller to adapt functions with
+different property, asking the source function to provide suitable
+data is better in efficiency.  Thus, the general function could have
+many interfaces.  One can check the consistency of data provided from
+the source function, however, explicitly specify the type of the
+function in wrapper may be better to make the user know which data
+they need to provide without running it.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|cc|}
+    \hline
+    name&user&math\\\hline
+    sp opt&sp optimizer&$1DS$\\
+    ele&log etc.&$mDD$\\
+    sp ge&sum&$mSS$\\
+  \end{tabular}
+  \caption{Type of functions}
+\end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|ccc|}
+    \hline
+    name&desc.&from&to\\\hline
+    S opt&sparse optimizer&$1DS$&-\\
+    D opt&dense optimizer&$1DD$&-\\
+    D op&$\log, \exp$ etc.&$mDD$&$mDD$\\
+    G op&sum etc.&$mXX$&$1XX$\\
+    M op&fcat&$mXX$&$mXX$\\
+    M op&xmap&$mDD$&$mSS$\\
+    \hline
+  \end{tabular}
+  \caption{Type of operations}
+\end{table}
+
+There is one more concept for designing the function lib: data
+container, e.g. dense vector, sparse vector, coo mat or csc mat.  A
+function know the coordinates to put the values, but the callers may
+use different container for the values.  For example, fcat prefers
+coo, but sum prefers dense and csc.
+
+Index forwarding and cache schemes: Index forwarding means use a
+object to translate the index for x and f; cache means collect and
+then distribute use temporary memory.  The previous favors memory
+(e.g. sum), but the later may favor performance (e.g. log) if the
+allocating of memory is not costly.
+
+Thus, it seems that we need lots of interfaces for a function to use
+them flexibly.
+
+\section{Implementation Details}
+Why not use null ptr to indicate dense: For a uniform call of routine
+patt, eval.
+
+Context is use to share $x$ dependent information between functions.
+One typical use is to avoid repeating computation.  For instance,
+$f_1$ and $f_2$ share some common computation, we can put the results
+in the context.  If a function is used in several different fcat, the
+context may help to store the global address of the output value.
+
+Because functions will be wrapped into multiple functions, i.e. fcat,
+it is better to use shared ptr for the instance.
+
+When result of an evaluation is sparse, the caller should have the
+chance to know the non-zero values for efficiently applying some
+operations, e.g. $\log(f+1)$.  However, when no such operations, it
+will be less efficient than direct add, which may be the most
+important operation.  {\em Thus, it is good to provide two
+  interfaces.}  Another way is to use template, but it leads the
+difficulty of compiling into library. Using function injection can
+lead to performance lost.
+
+\section{Example}
+
+\subsection{A Simple Case}
+\begin{equation}
+  \begin{split}
+    x&\in R^4\\
+    f(x) &=
+    \begin{pmatrix}
+      f_0(x)\\
+      f_1(x)
+    \end{pmatrix}\\
+    f_0(x) &= 10
+    \begin{pmatrix}
+      \cos(x_0)\\
+      x_1x_2\\
+    \end{pmatrix}\\
+    f_1(x) &=
+    \begin{pmatrix}
+      1-x_1\\
+      x_4-x_0\\
+      x_2-\sin(x_0)
+    \end{pmatrix}
+  \end{split}
+\end{equation}
+\end{document}

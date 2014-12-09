@@ -1,0 +1,267 @@
+\documentclass[annual]{acmsiggraph}
+\TOGonlineid{45678}
+\TOGvolume{0}
+\TOGnumber{0}
+\TOGarticleDOI{1111111.2222222}
+\TOGprojectURL{}
+\TOGvideoURL{}
+\TOGdataURL{}
+\TOGcodeURL{}
+
+\usepackage{mathrsfs}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsthm}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+\usepackage{prettyref}
+\newrefformat{fig}{Fig.~\ref{#1}}
+\newrefformat{par}{section~\ref{#1}}
+\newrefformat{sec}{section~\ref{#1}}
+\newrefformat{sub}{section~\ref{#1}}
+\newrefformat{table}{table~\ref{#1}}
+\newrefformat{alg}{algorithm~\ref{#1}}
+\newrefformat{Def}{definition~\ref{#1}}
+\newrefformat{Thm}{theorem~\ref{#1}}
+\newrefformat{step}{step~\ref{#1}}
+\newrefformat{eq}{equation~\eqref{#1}}
+\newrefformat{pb}{problem~\eqref{#1}}
+\def\Eqref Eq:#1:{\eqref{eq:#1}}
+\newrefformat{Eq}{Equation~\Eqref#1:}
+
+\newcommand{\E}[1]{\mathbf{#1}}
+\newcommand{\FPP}[2]{\frac{\partial{#1}}{\partial{#2}}}
+\newcommand{\FDD}[2]{\frac{d{#1}}{d{#2}}}
+\newcommand{\TWOC}[2]{\left(\begin{array}{c}#1 \\ #2\end{array}\right)}
+\newcommand{\TWOR}[2]{\left(\setlength{\arraycolsep}{1pt}\begin{array}{cc}{#1}^T & {#2}^T\end{array}\right)^T}
+\newcommand{\TWORC}[4]{\left(\begin{array}{cc}#1 & #2 \\ #3 & #4\end{array}\right)}
+\newcommand{\THREEC}[3]{\left(\begin{array}{c}#1 \\ #2 \\ #3\end{array}\right)}
+\newcommand{\THREER}[3]{\left(\setlength{\arraycolsep}{1pt}\begin{array}{ccc}{#1}^T & {#2}^T & {#3}^T\end{array}\right)^T}
+\newcommand{\FOURC}[4]{\left(\begin{array}{c}#1 \\ #2 \\ #3 \\ #4\end{array}\right)}
+\newcommand{\FOURR}[4]{\left(\setlength{\arraycolsep}{1pt}\begin{array}{cccc}{#1}^T & {#2}^T & {#3}^T & {#4}^T\end{array}\right)^T}
+\newcommand{\SIXC}[6]{\left(\begin{array}{c}#1 \\ #2 \\ #3 \\ #4 \\ #5 \\ #6\end{array}\right)}
+\newcommand{\SIXR}[6]{\left(\setlength{\arraycolsep}{1pt}\begin{array}{cccc}{#1}^T & {#2}^T & {#3}^T & {#4}^T {#5}^T {#6}^T\end{array}\right)^T}
+\newcommand{\MTT}[4]{\left(\begin{array}{cc}#1 & #2 \\ #3 & #4\end{array}\right)}
+\newtheorem{myDef}{Definition}
+\newtheorem{myTheo}{Theorem}
+
+\title{Large Scaled Constrained Optimization}
+\author{Zherong Pan}
+\pdfauthor{Zherong Pan}
+
+\begin{document}
+\maketitle
+
+\section{General Algorithm}
+We implement algorithm \cite{byrd2000trust}, this report is intended to clarify the principles for Tengfei Jiang and list necessary algorithms for implementation convenience. 
+
+Our presentation starts from some helper functions and then move on to main algorithms. Lies in core of \cite{byrd2000trust} is a trust region solution routines with linear constraint, so we analyse these first. Then we present the core algorithm. Finally we list some parameter choice routines.
+
+\section{Trust Region Solver}
+\cite{byrd2000trust} requires solving first a normal equation problem and then a linear constrained trust region problem. Both problems are in trust region form, the first one is positive semi-definite with no constraints, the second one is possibly indefinite with linear constraints.
+
+We implement three solvers for these problem: double dogleg, two subspace minimization, the Steihaug-CG. We describe these solvers one by one. In all these methods, we consider the problem:
+\begin{subequations}
+\label{pb:TR_PROB}
+\begin{align}
+\E{min}&&\E{g}^T\E{p}+\frac{1}{2}\E{p}^T\E{H}\E{p}	\\
+\E{s.t.}&&\E{A}\E{p}=\E{0}	\\
+&&\|\E{p}\|\leq\Delta,
+\end{align}
+\end{subequations}
+where $\E{H}^{n\times n}$ is symmetric.
+
+\subsection{The Double Dogleg Method (TFJ)}
+This method is suitable of solving medium sized version of \prettyref{pb:TR_PROB}, if $\E{H}|\mathcal{K}(\E{A})$ is positive semi-definite. Let $S^{n\times k}$ be a normalized orthogonal basis of $\mathcal{K}(\E{A})$, we first transform \prettyref{pb:TR_PROB} using $\E{p}=\E{S}\E{u}$ to get:
+\begin{subequations}
+\label{pb:TR_PROB_R}
+\begin{align}
+\E{min}&&\tilde{\E{g}}^T\E{u}+\frac{1}{2}\E{u}^T\tilde{\E{H}}\E{u}	\\
+\E{s.t.}&&\|\E{u}\|_{\E{S}^T\E{S}}\leq\Delta,
+\end{align}
+\end{subequations}
+where $\tilde{\E{g}}=\E{S}^T\E{g}$ and $\tilde{\E{H}}=\E{H}|\mathcal{K}(\E{A})=\E{S}^T\E{H}\E{S}$. We see that $\tilde{\E{H}}$ is also positive semi-definite. Now we define Cauchy Point for \prettyref{pb:TR_PROB_R}:
+\begin{eqnarray*}
+\E{argmin}_{t^*}&&\tilde{\E{g}}^T\tilde{\E{g}}t+\frac{1}{2}\tilde{\E{g}}^T\tilde{\E{H}}\tilde{\E{g}}t^2	\\
+\E{s.t.}&&\|\tilde{\E{g}}t\|_{\E{S}^T\E{S}}\leq\Delta	\\
+&&\E{u}^C=\tilde{\E{g}}t^*.
+\end{eqnarray*}
+Moreover, we define Newton Point for \prettyref{pb:TR_PROB_R}:
+\begin{eqnarray*}
+\E{u}^N=-\tilde{\E{H}}^\dagger\tilde{\E{g}}.
+\end{eqnarray*}
+Double Dogleg search for the approximate solution along curve:
+\begin{equation*}
+\E{u}(\tau)=
+\begin{cases}
+   \E{u}^C\tau & \text{if } 0 \leq \tau \leq 1 \\
+   \E{u}^C+\frac{\tau-1}{\gamma}(\gamma\E{u}^N-\E{u}^C) & \text{if } 1 < \tau \leq \gamma+1	\\
+   \E{u}^N(\tau-1) & \text{if } \gamma+1 < \tau \leq 2.
+\end{cases}
+\end{equation*}
+We finally recover the solution using $\E{p}=\E{S}\E{u}$. 
+
+In practice, we don't find $\E{S}$, which requires a rank revealing decomposition. We find $\E{S}\E{S}^T\E{g}=\E{g}^P$ and $\E{S}\E{u}^N=\E{p}^N$ directly. To do this we need following important results:
+\begin{myTheo}
+\label{Thm:THEO}
+If $\tilde{\E{g}} \in \mathcal{I}(\E{H})$ and $\E{H}^\dagger$ is obtained by calculating SVD of $\E{H}$ and inverse each nonzero element of $\Sigma$, then there exists $\E{\lambda}_1$ and $\E{\lambda}_2$ such that:
+\begin{eqnarray*}
+\MTT{\E{H}}{\E{A}^T}{\E{A}}{\E{0}}\TWOC{\E{p}^N}{\E{\lambda}_1}=\TWOC{-\E{g}}{0}	\\
+\MTT{\E{I}}{\E{A}^T}{\E{A}}{\E{0}}\TWOC{\E{g}^P}{\E{\lambda}_2}=\TWOC{\E{g}}{0}.
+\end{eqnarray*}
+\begin{proof}
+For the first equation, we have:
+\begin{eqnarray*}
+\E{S}\E{S}^T(\E{H}\E{p}^N+\E{g})&=&\E{S}(\E{S}^T\E{H}\E{p}^N+\E{S}^T\E{g})	\\
+&=&\E{S}(\E{S}^T\E{H}(-\E{S}\E{H}^\dagger\tilde{\E{g}})+\tilde{\E{g}})	\\
+&=&\E{S}(-\tilde{\E{H}}\E{H}^\dagger\tilde{\E{g}}+\tilde{\E{g}})=0.
+\end{eqnarray*}
+But by the fact that $\mathcal{K}(\E{A})\perp\mathcal{I}(\E{A}^T)$ and $\E{Proj}(\mathcal{K}(\E{A}))=\E{S}\E{S}^T$, we know that $\E{H}\E{p}^N+\E{g} \in \mathcal{I}(\E{A}^T)$, i.e. $\E{H}\E{p}^N-\E{g}=-\E{A}^T\lambda_1$.
+
+For the second equation, we know that $\E{g}^P=\E{S}\E{S}^T\E{g}$, we also have $\E{S}^T(\E{g}^P-\E{g})=\E{0}$, so that we have $\E{g}^P-\E{g}=-\E{A}^T\lambda_2$ for the same reason.
+\end{proof}
+\end{myTheo}
+
+\subsection{The Two Subspace Minimization Method (TFJ)}
+This method is suitable of solving medium sized version of \prettyref{pb:TR_PROB} as the double dogleg method, but allows $\E{H}|\mathcal{K}(\E{A})$ to be arbitrary. The only difference of this method with the double dogleg scheme is that, instead of searching along the dogleg shaped curve, we search in the two dimensional subspace spanned by $\{\E{g}^P,\E{g}^N$\}. Let's find out how to do this, we first get a set of unit orthogonal basis $\text{span}(\E{S})=\text{span}(\E{g}^P,\E{g}^N)$, then reduce \prettyref{pb:TR_PROB} using $\E{p}=\E{S}\E{u}$:
+\begin{subequations}
+\label{pb:TR_PROB_R}
+\begin{align}
+\E{min}&&\tilde{\E{g}}^T\E{u}+\frac{1}{2}\E{u}^T\tilde{\E{H}}\E{u}	\\
+\E{s.t.}&&\|\E{u}\|\leq\Delta,
+\end{align}
+\end{subequations}
+where tilde symbols has same meanings as above but note $\E{S}$ is different. We first solve for $-\tilde{\E{H}}\tilde{\E{g}}$, if the solution is in trust region, exit. Otherwise, we parameterize $\E{u}=(\alpha,\sqrt{\Delta^2-\alpha^2})$ and substitute to get reduced objective function:
+\begin{eqnarray*}
+\tilde{\E{g}}_1\alpha+\tilde{\E{g}}_2\sqrt{\Delta^2-\alpha^2}+\frac{1}{2}\alpha^2\tilde{\E{H}}_{11}+	\\
+\frac{1}{2}(\Delta^2-\alpha^2)\tilde{\E{H}}_{22}+\tilde{\E{H}}_{12}\alpha\sqrt{\Delta^2-\alpha^2}.
+\end{eqnarray*}
+The derivative of this function is:
+\begin{eqnarray*}
+\frac{1}{\sqrt{\Delta^2-\alpha^2}}(-\alpha\sqrt{\Delta^2-\alpha^2}\tilde{\E{H}}_{22}+(\Delta^2-\alpha^2)\tilde{\E{H}}_{12}-\alpha^2\tilde{\E{H}}_{21}+	\\
+\alpha\sqrt{\Delta^2-\alpha^2}\tilde{\E{H}}_{11}-\alpha\tilde{\E{g}}_2+\sqrt{\Delta^2-\alpha^2}\tilde{\E{g}}_1).
+\end{eqnarray*}
+Square the numerator to get the quadric equation and solve it analytically (Code can be found in a conventional continuous collision detection lib, don't do it yourself). Then, find the solution corresponding to minimal objective value and accept it.
+
+\subsection{The Steihaug-CG Method (PZR)}
+This method is suitable of solving large scaled version of \prettyref{pb:TR_PROB} allowing $\E{H}|\mathcal{K}(\E{A})$ to be arbitrary. To implement an efficient version of this method, we have to take into account of several modifications to standard conjugate gradient:
+\begin{enumerate}
+\item The linear constraint.
+\item The norm of trust region, in our case not a problem.
+\item Appropriate preconditioner.
+\item Termination condition.
+\end{enumerate}
+
+We begin our analysis on a conventional CG method for solving $\E{H}\E{x}=-\E{g}$ where $\E{H}$ is positive semi-definite. The idea is to search for solution $\E{x}_k$ in $\E{span}(\E{d}_0,\cdots,\E{d}_{k-1})$ at the end of iteration $k$, such that $\E{span}(\E{d}_0,\cdots,\E{d}_{k-1})=\E{span}(\E{r}_0,\E{H}\E{r}_0,\cdots,\E{H}^{k-1}\E{r}_0)$. Then at iteration $k$, expand this basis using:
+\begin{eqnarray*}
+\E{r}_k&=&\E{g}+\E{H}\E{x}	\\
+\E{d}_k&=&\E{r}_k+\beta\E{d}_{k-1}	\\
+\beta&=&-\frac{\E{r}_k^T\E{H}\E{d}_{k-1}}{\E{d}_{k-1}^T\E{H}\E{d}_{k-1}}.
+\end{eqnarray*}
+We note that if $\E{d}_k$ is close to zero, then we know that $\E{r}_k$ is almost in $\E{span}(\E{d}_0,\cdots,\E{d}_{k-1})$, but $x_k$ is minimized in this subspace, thus $\E{r}_k$ must also be close to zero and the procedure can terminate. The complete algorithm is \prettyref{alg:CG}.
+\begin{algorithm}[h]
+\caption{CG Algorithm}
+\label{alg:CG}
+\begin{algorithmic}
+\REQUIRE $\E{x}$, $\E{r}=\E{g}+\E{H}\E{x}$ and $\E{d}=\E{r}$
+\ENSURE $\E{x}^*$
+\WHILE{$\|\E{r}\|$ not small}
+\STATE $\alpha=\frac{\E{r}^T\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{x}=\E{x}-\alpha\E{d}$
+\STATE $\E{r}=\E{r}-\alpha\E{H}\E{d}$
+\STATE $\beta=-\frac{\E{r}^T\E{H}\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{d}=\E{r}+\beta\E{d}$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+Our first modification comes from the fact that we are now using $\E{H}|\mathcal{K}(\E{A})$ instead of $\E{H}$, but forming a basis for $\mathcal{K}(\E{A})$ is too expansive. But there is another easier alternative, we project $\E{r}_k$ to $\mathcal{K}(\E{A})$ using the second equation of \prettyref{Thm:THEO} to get:
+\begin{eqnarray*}
+\E{d}_k&=&\tilde{\E{r}}_k+\beta\E{d}_{k-1}	\\
+\MTT{\E{I}}{\E{A}^T}{\E{A}}{\E{0}}\TWOC{\tilde{\E{r}}_k}{\E{\lambda}}&=&\TWOC{\E{r}_k}{0}.
+\end{eqnarray*}
+To validate this approach, we first note that by doing so, $\E{span}(\E{d}_0,\cdots,\E{d}_{k-1}) \in \mathcal{K}(\E{A})$, so the constraint is always satisfied as long as the initial value is properly chosen. Moreover, we note that if $\E{d}_k$ is close to zero, then $\tilde{\E{r}}_k=\E{S}\E{S}^T\E{r}_k$ is in $\E{span}(\E{d}_0,\cdots,\E{d}_{k-1})$. But $\E{x}$ is already minimized in this subspace, so we have $\tilde{\E{r}}_k$ is also close to zero. In that case, we have $\tilde{\E{r}}=\E{S}\E{S}^T(\E{H}\E{x}+\E{g})=0$, and by using the fact that $\mathcal{K}(\E{A})\perp\mathcal{I}(\E{A}^T)$, we have $\E{H}\E{x}+\E{g}=-\E{A}^T\lambda$. Putting these results together, we have that when the algorithm converges, the first equation of \prettyref{Thm:THEO} is satisfied and we are essentially solving the corresponding KKT system. This upgraded algorithm is \prettyref{alg:KKTCG}, note that we have to preserve $\tilde{\E{r}}$ besides $\E{r}$ this time.
+\begin{algorithm}[h]
+\caption{KKT-CG Algorithm}
+\label{alg:KKTCG}
+\begin{algorithmic}
+\REQUIRE $\E{x}$, $\E{r}=\E{g}+\E{H}\E{x}$, $\tilde{\E{r}}=\E{S}\E{S}^T\E{r}$ and $\E{d}=\tilde{\E{r}}$
+\ENSURE $\E{x}^*$
+\WHILE{$\|\tilde{\E{r}}\|$ not small}
+\STATE $\alpha=\frac{\tilde{\E{r}}^T\E{d}}{\E{d}^T\E{H}\E{d}}=\frac{\E{r}^T\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{x}=\E{x}-\alpha\E{d}$
+\STATE $\E{r}=\E{r}-\alpha\E{H}\E{d}$
+\STATE $\tilde{\E{r}}=\E{S}\E{S}^T\E{r}$
+\STATE $\beta=-\frac{\tilde{\E{r}}^T\E{H}\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{d}=\tilde{\E{r}}+\beta\E{d}$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+Our next modification is to precondition KKT-CG algorithm on both side. This is simple, we just solve the modified linear system:
+\begin{eqnarray*}
+\E{M}&=&\E{L}\E{L}^T	\\
+\E{L}^{-1}\E{H}\E{L}^{-T}\E{y}&=&-\E{L}^{-1}\E{g}	\\
+\E{x}&=&\E{L}^{-T}\E{y}.
+\end{eqnarray*}
+But we don't derive it this way, because we will soon find that the requirement of subspace and the preconditioner is interwoven. Instead, we note that in \prettyref{alg:CG}, if we don't generate new $\E{d}$ using $\E{r}$ but we use $\E{H}^{-1}\E{r}$, then in next iteration the exact solution is attained. Therefore, we try to approximate $\E{H}^{-1}$ using $\E{M}^{-1}$ which is usually easy to solve and generate new $\E{d}$ using $\E{r}=\E{M}^{-1}\E{r}$. However, this $\E{r}$ must also be in $\mathcal{K}(\E{A})$. Combine both considerations, we generate $\E{d}$ by solving the following equation:
+\begin{eqnarray*}
+\MTT{\E{M}}{\E{A}^T}{\E{A}}{\E{0}}\TWOC{\tilde{\E{r}}}{\E{\lambda}}&=&\TWOC{\E{r}}{0},
+\end{eqnarray*}
+yielding \prettyref{alg:KKTPCG}.
+\begin{algorithm}[h]
+\caption{KKT-PCG Algorithm}
+\label{alg:KKTPCG}
+\begin{algorithmic}
+\REQUIRE $\E{x}$, $\E{r}=\E{g}+\E{H}\E{x}$, $\tilde{\E{r}}=\E{S}\E{S}^T\E{r}$ and $\E{d}=\tilde{\E{r}}$
+\ENSURE $\E{x}^*$
+\WHILE{$\|\tilde{\E{r}}\|$ not small}
+\STATE $\alpha=\frac{\tilde{\E{r}}^T\E{d}}{\E{d}^T\E{H}\E{d}}=\frac{\E{r}^T\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{x}=\E{x}-\alpha\E{d}$
+\STATE $\E{r}=\E{r}-\alpha\E{H}\E{d}$
+\STATE Solving $\MTT{\E{M}}{\E{A}^T}{\E{A}}{\E{0}}\TWOC{\tilde{\E{r}}}{\E{\lambda}}=\TWOC{\E{r}}{0}$
+\STATE $\beta=-\frac{\tilde{\E{r}}^T\E{H}\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{d}=\tilde{\E{r}}+\beta\E{d}$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+Our final modification is to use Steihaug's approach \cite{steihaug1983conjugate} to solve the trust-region problem using above routine. This can be done by adding additional termination conditions carefully. We have to handle two extra conditions in addition to $\|\tilde{\E{r}}\|$ close to zero. The first one is that $\E{x}-\alpha\E{d}$ is outside region, in this case we clamp on boundary. The second one is that we encounter negative curvature, in this case we go along this direction to boundary. Both are very easy to understand. At last, we have reached our final version \prettyref{alg:TRKKTPCG}.
+\begin{algorithm}[b]
+\caption{TrustRegion-KKT-PCG Algorithm}
+\label{alg:TRKKTPCG}
+\begin{algorithmic}
+\REQUIRE $\E{x}$, $\E{r}=\E{g}+\E{H}\E{x}$, $\tilde{\E{r}}=\E{S}\E{S}^T\E{r}$ and $\E{d}=\tilde{\E{r}}$
+\ENSURE $\E{x}^*$
+\WHILE{true}
+\STATE $\alpha=\frac{\tilde{\E{r}}^T\E{d}}{\E{d}^T\E{H}\E{d}}=\frac{\E{r}^T\E{d}}{\E{d}^T\E{H}\E{d}}$
+\IF {$\E{d}^T\E{H}\E{d}\leq0$}
+\STATE Set $\E{x}=\E{x}+\tau\E{d}$ such that $\|\E{x}\|=\Delta$
+\STATE exit
+\ENDIF
+\STATE $\E{x}=\E{x}-\alpha\E{d}$
+\IF{$\|\E{x}\|>\Delta$}
+\STATE Clamp $\E{x}$ to boundary
+\STATE exit
+\ENDIF
+\STATE $\E{r}=\E{r}-\alpha\E{H}\E{d}$
+\IF{$\|\E{r}\|$ small enough}
+\STATE exit
+\ENDIF
+\STATE Solving $\MTT{\E{M}}{\E{A}^T}{\E{A}}{\E{0}}\TWOC{\tilde{\E{r}}}{\E{\lambda}}=\TWOC{\E{r}}{0}$
+\STATE $\beta=-\frac{\tilde{\E{r}}^T\E{H}\E{d}}{\E{d}^T\E{H}\E{d}}$
+\STATE $\E{d}=\tilde{\E{r}}+\beta\E{d}$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+The validity of this algorithm depends on the fact that as long as $\E{d}^T\E{H}\E{d}>0$, $\E{H}|\E{span}(\E{d}_0,\cdots,\E{d}_{k-1})$ is positive semi-definite. Therefore, CG algorithm performs well.
+
+\section{Internal Point/CG Algorithm Pipeline}
+TODO...
+
+\bibliographystyle{acmsiggraph}
+\bibliography{template}
+\end{document}

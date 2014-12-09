@@ -1,0 +1,9 @@
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/optimizer/example/CMakeFiles/example.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/function/include/CMakeFiles/include.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/function/src/CMakeFiles/jtf-function.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/math/CMakeFiles/jtf-math.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/mesh/CMakeFiles/jtf-mesh.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/optimizer/src/CMakeFiles/jtf-optimizer.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/util/CMakeFiles/jtf-util.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/mesh_function/CMakeFiles/mesh_function.dir
+/home/tfjiang/usr/geo_sim_sdk/branches/jtflib-build/algorithm/src/CMakeFiles/test.dir

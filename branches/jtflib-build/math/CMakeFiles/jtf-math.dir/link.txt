@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC -std=c++0x -std=c++0x  -g   -shared -Wl,-soname,libjtf-mathd.so -o ../lib/libjtf-mathd.so CMakeFiles/jtf-math.dir/src/null.cpp.o  -L/home/tfjiang/usr/Linux/lib  -L/home/tfjiang/usr/Linux/64/lib  -L/home/tfjiang/usr/Linux/64/gcc4/lib 
