@@ -203,7 +203,7 @@ namespace jtf
       typedef std::map<size_t,std::vector<size_t> > p2f_type;
       std::map<size_t,std::vector<size_t> > p2f_;
     private:
-      //void fix_boundary_loop();
+      void fix_boundary_loop();
     };
 
     //! @brief store one ring point of a point

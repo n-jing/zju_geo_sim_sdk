@@ -165,8 +165,8 @@ namespace jtf{
           edge2cell_[eidx] = mit->second;
         }
 
-        cerr << "# create edge2cell_adjacent success with "
-             << edgenum << " entries" << endl;
+      cerr << "# create edge2cell_adjacent success with "
+           << edgenum << " entries" << endl;
       return 0;
     }
 
@@ -725,7 +725,21 @@ namespace jtf{
           loop_face.resize(temp_loop.size());
           copy(temp_loop.begin(),temp_loop.end(),loop_face.begin());
         }
-      //fix_boundary_loop();
+      fix_boundary_loop();
+    }
+
+    void one_ring_face_at_point::fix_boundary_loop()
+    {
+      for(p2f_type::iterator pcit = p2f_.begin(); pcit != p2f_.end(); ++pcit){
+          vector<size_t> & loop_face = pcit->second;
+          if(loop_face.front() != loop_face.back()){
+              if(loop_face.front() == -1) loop_face.push_back(-1);
+              else if(loop_face.back() == -1) loop_face.insert(loop_face.begin(),-1);
+              else {
+                  std::cerr << "# [error] strang one ring face." << std::endl;
+                }
+            }
+        }
     }
 
     void one_ring_face_at_point::sort_int_loop_with_normal_info(
@@ -740,7 +754,7 @@ namespace jtf{
       matrixd average_face_normal = zjucad::matrix::zeros<double>(3,1);
       for(p2f_type::iterator ptit = p2f_.begin(); ptit != p2f_.end(); ++ptit){
           vector<size_t> & loop_face = ptit->second;
-         // if(count(loop_face.begin(),loop_face.end(),-1) == 1) continue; // sharp edge
+          // if(count(loop_face.begin(),loop_face.end(),-1) == 1) continue; // sharp edge
           if(loop_face.front() == -1 && loop_face.back() == -1 && loop_face.size() == 3) continue; //sharp edge
           assert(loop_face.front() == loop_face.back());
           average_face_normal = zjucad::matrix::zeros<double>(3,1);

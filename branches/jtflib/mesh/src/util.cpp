@@ -90,7 +90,8 @@ namespace jtf{
     void cal_face_normal(const matrixst & mesh,
                          const matrixd & node,
                          matrixd & normal,
-                         bool is_normalized)
+                         bool is_normalized,
+                         double eps)
     {
       if(normal.size(1) != 3 || normal.size(2) != mesh.size(2));
       normal.resize(3, mesh.size(2));
@@ -104,7 +105,7 @@ namespace jtf{
           normal(colon(),fi) = cross(edges[0], edges[1]);
           if(is_normalized){
               const double len = norm(normal(colon(),fi));
-              if(len > 1e-6)
+              if(len > eps)
                 normal(colon(),fi) /= len;
             }
         }
@@ -112,7 +113,8 @@ namespace jtf{
 
     void cal_face_normal(const matrixd & node,
                          matrixd & normal,
-                         bool is_normalized)
+                         bool is_normalized,
+                         double eps)
     {
       if(normal.size() != 3)
         normal.resize(3,1);
@@ -124,14 +126,15 @@ namespace jtf{
       normal = cross(edges[0], edges[1]);
       if(is_normalized){
           const double len = norm(normal);
-          if(len > 1e-6)
+          if(len > eps)
             normal /= len;
         }
     }
 
     void cal_point_normal(const matrixst & mesh,
                           const matrixd & node,
-                          matrixd & normal)
+                          matrixd & normal,
+                          double eps)
     {
       normal = zeros<double>(3, node.size(2));
 
@@ -159,7 +162,7 @@ namespace jtf{
 
           normal(colon(),ni) /= total_area;
           const double len = norm(normal(colon(),ni));
-          if(len > 1e-6)
+          if(len > eps)
             normal(colon(),ni) /= len;
         }
     }

@@ -23,7 +23,7 @@ else(Boost_FOUND)
     message("CAN NOT FIND BOOST")
 endif(Boost_FOUND)
 add_library(jtf-mesh SHARED ${header} ${source})
-target_link_libraries(jtf-mesh jtf-util)
+target_link_libraries(jtf-mesh jtf-util lapack)
 
 install(TARGETS jtf-mesh
   DESTINATION ${CMAKE_INSTALL_PREFIX}/Linux/64/gcc4/lib/)

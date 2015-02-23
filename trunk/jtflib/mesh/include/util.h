@@ -86,7 +86,8 @@ namespace jtf{
     void cal_face_normal(const matrixst & mesh,
                          const matrixd & node,
                          matrixd & normal,
-                         bool is_normalized = true);
+                         bool is_normalized = true,
+                         double eps = 1e-8);
 
     ///
     /// @brief cal_face_normal
@@ -96,7 +97,8 @@ namespace jtf{
     ///
     void cal_face_normal(const matrixd & node,
                          matrixd & normal,
-                         bool is_normalized = true);
+                         bool is_normalized = true,
+                         double eps = 1e-8 );
 
     ///
     /// @brief cal_point_normal, each point normal is area weight face normal
@@ -107,7 +109,8 @@ namespace jtf{
     ///
     void cal_point_normal(const matrixst & mesh,
                           const matrixd & node,
-                          matrixd & normal);
+                          matrixd & normal,
+                          double eps = 1e-8);
 
     ///
     /// @brief transfer a planar 3d mesh to 2d mesh, notice that the mesh should

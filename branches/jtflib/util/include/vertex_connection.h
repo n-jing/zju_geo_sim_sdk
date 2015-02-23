@@ -82,40 +82,6 @@ public:
     return 0;
   }
 
-  double get_shortest_len(const size_t begin_vertex,
-                          const size_t end_vertex)
-  {
-    double len = 0;
-
-    typedef std::map<size_t,size_t>::const_iterator mcit;
-    const Graph & g = *graph_;
-
-    std::vector<double> distance(num_vertices(g));
-    mcit begin_vertex_name_iter = smp_.find(begin_vertex);
-    mcit end_vertex_name_iter = smp_.find(end_vertex);
-    if(begin_vertex_name_iter == smp_.end() || end_vertex_name_iter == smp_.end()) {
-      return __LINE__;
-    }
-
-    vertex_descriptor s = vertex(begin_vertex_name_iter->second, g);
-    std::vector<vertex_descriptor> p(num_vertices(g));
-    dijkstra_shortest_paths(g, s, boost::predecessor_map(&p[0]).distance_map(&distance[0]));
-
-    vertex_descriptor vi = vertex(end_vertex_name_iter->second,g);
-    path.clear();
-
-    while(vi != s){
-      if(p[vi] == vi){
-        return __LINE__;
-      }
-      path.push_back(vertex_name_[vi]);
-      vi = p[vi];
-    }
-    path.push_back(vertex_name_[vi]);
-
-    std::reverse(path.begin(),path.end());
-  }
-
   // find the shortes path by using dijkstra, path records the whole path from begin_vertex to end_vertex
   // if can not find a path, return non-zeros
 

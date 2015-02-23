@@ -33,9 +33,13 @@ namespace jtf{
             }
           if (strtemp[0] == 'f' || strtemp[0] == 'F'){
               ++face_num;
-              boost::split(string_q, strtemp, boost::is_any_of("\t, "));
-              if(!string_q.empty() && string_q.back().empty())
-                string_q.pop_back();
+              boost::split(string_q, strtemp, boost::is_any_of("\t, ,\r"));
+	      while(!string_q.empty()){
+		if(string_q.back().empty() || string_q.back() == "\r")
+		  string_q.pop_back();
+		else
+		  break;
+	      }
               if(face_type == -1)
                 face_type = string_q.size() - 1;
               else{
