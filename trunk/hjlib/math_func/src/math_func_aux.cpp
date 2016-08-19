@@ -2,8 +2,8 @@
 #include <iostream>
 #include <vector>
 
-#include <zjucad/matrix/matrix.h>
-#include <zjucad/matrix/io.h>
+#include <zjucad/matrix/include/matrix.h>
+#include <zjucad/matrix/include/io.h>
 
 #include "../include/func_aux.h"
 #include "../include/coo.h"

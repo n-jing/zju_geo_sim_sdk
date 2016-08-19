@@ -10,8 +10,7 @@ link_geo_sim_sdk()
 aux_source_directory(. sources)
 add_library(hj_ANN_c SHARED ${sources})
 
-target_link_libraries(hj_ANN_c
-  ann-parallel-static)
+target_link_libraries(hj_ANN_c ANN)
 
 geo_sim_sdk_install_c(TARGETS hj_ANN_c)
 

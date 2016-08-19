@@ -3,7 +3,7 @@
 
 #include "conf.h"
 
-#include <zjucad/matrix/matrix.h>
+#include <zjucad/matrix/include/matrix.h>
 
 namespace hj {
 

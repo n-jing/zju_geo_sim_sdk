@@ -1,4 +1,4 @@
-#include <zjucad/matrix/matrix.h>
+#include <zjucad/matrix/include/matrix.h>
 #include <zjucad/ptree/ptree.h>
 #include <iostream>
 

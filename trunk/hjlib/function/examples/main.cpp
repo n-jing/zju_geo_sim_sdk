@@ -6,8 +6,8 @@
 #include <memory>
 #include <cassert>
 
-#include <zjucad/matrix/matrix.h>
-#include <zjucad/matrix/io.h>
+#include <zjucad/matrix/include/matrix.h>
+#include <zjucad/matrix/include/io.h>
 
 #include <boost/shared_ptr.hpp>
 

@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include <zjucad/matrix/matrix.h>
-#include <zjucad/matrix/itr_matrix.h>
+#include <zjucad/matrix/include/matrix.h>
+#include <zjucad/matrix/include/itr_matrix.h>
 
-#include <hjlib/sparse/sparse.h>
+#include <hjlib/sparse/include/sparse.h>
 
 #include <iostream>
 

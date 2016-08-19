@@ -1,7 +1,7 @@
 #ifndef HJ_SPARSE_FORMAT_H_
 #define HJ_SPARSE_FORMAT_H_
 
-#include <zjucad/matrix/matrix.h>
+#include <zjucad/matrix/include/matrix.h>
 
 #include <vector>
 #include <map>
